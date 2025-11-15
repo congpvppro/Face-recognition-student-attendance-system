@@ -98,6 +98,32 @@ class FaceDatabase:
                 results[i] = ("Unknown", 0.0)
 
         return results
+    def delete_face(self, name: str) -> int:
+        with self.lock:
+            if self.index.ntotal == 0:
+                return 0
+
+            indices_to_keep = [i for i, meta_name in enumerate(self.metadata) if meta_name != name]
+            num_deleted = self.index.ntotal - len(indices_to_keep)
+
+            if num_deleted == 0:
+                return 0
+
+            # Reconstruct all embeddings
+            all_embeddings = self.index.reconstruct_n(0, self.index.ntotal)
+            
+            # Filter to keep only the necessary ones
+            new_embeddings = all_embeddings[indices_to_keep]
+            new_metadata = [self.metadata[i] for i in indices_to_keep]
+            
+            # Reset and rebuild the index
+            self.index.reset()
+            if len(new_embeddings) > 0:
+                self.index.add(np.array(new_embeddings, dtype=np.float32))
+            
+            self.metadata = new_metadata
+            
+            return num_deleted
 
     def save(self) -> None:
 

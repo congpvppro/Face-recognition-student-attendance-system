@@ -10,4 +10,4 @@ uvicorn
 python-multipart
 aiofiles
 websockets
-mysql
+requests

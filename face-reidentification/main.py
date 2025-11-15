@@ -63,12 +63,8 @@ def parse_args():
     parser.add_argument("--match-thresh", type=float, default=0.8, help="IoU threshold for matching")
     parser.add_argument("--min-box-area", type=int, default=100, help="Minimum bbox area")
 
-    # MySQL parameters
-    parser.add_argument("--mysql-host", type=str, default="localhost", help="MySQL host")
-    parser.add_argument("--mysql-port", type=int, default=3306, help="MySQL port")
-    parser.add_argument("--mysql-user", type=str, default="root", help="MySQL user")
-    parser.add_argument("--mysql-password", type=str, default="07112005", help="MySQL password")
-    parser.add_argument("--mysql-database", type=str, default="attendance_db", help="MySQL database name")
+    # SQLite parameters
+    parser.add_argument("--attendance-db-path", type=str, default="./database/attendance.db", help="Path to SQLite attendance database")
 
     return parser.parse_args()
 
@@ -487,13 +483,7 @@ def main(params):
         anti_spoofing = AntiSpoof(params.spoof_weight)
         file_name = "models/face_tracking/config_tracking.yaml"
         config_tracking = load_config(file_name)
-        attendance_db = AttendanceDatabase(
-            host=params.mysql_host,
-            port=params.mysql_port,
-            user=params.mysql_user,
-            password=params.mysql_password,
-            database=params.mysql_database
-        )
+        attendance_db = AttendanceDatabase(db_path=params.attendance_db_path)
     except Exception as e:
         logging.error(f"Failed to load models or database: {e}")
         return
