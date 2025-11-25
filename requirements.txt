@@ -11,3 +11,7 @@ python-multipart
 aiofiles
 websockets
 requests
+langchain
+langchain-community
+langchain-core
+langchain-groq
