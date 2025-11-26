@@ -16,11 +16,13 @@ CREATE TABLE IF NOT EXISTS attendance_sessions (
     exit_time TEXT,
     duration_minutes INTEGER,
     status TEXT DEFAULT 'present' CHECK(status IN ('present', 'left')),
-    attendance_status TEXT DEFAULT 'on_time' CHECK(attendance_status IN ('on_time', 'late', 'absent', 'excused')),
+    attendance_status TEXT DEFAULT 'on_time' CHECK(attendance_status IN ('on_time', 'late', 'absent', 'excused', 'left_early')),
     late_minutes INTEGER DEFAULT 0,
+    reason_for_scoring TEXT,
+    session_number INTEGER,
+    attendance_score REAL,
     FOREIGN KEY (student_id) REFERENCES students(id)
 );
-ALTER TABLE attendance_sessions ADD COLUMN reason_for_scoring TEXT;
 
 CREATE TABLE IF NOT EXISTS daily_attendance (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -75,7 +77,7 @@ CREATE TABLE IF NOT EXISTS student_circumstances (
 CREATE INDEX IF NOT EXISTS idx_date_status ON attendance_sessions (session_date, status);
 
 -- Insert class schedule (YOUR ORIGINAL TIMES)
-INSERT INTO class_schedule (session_number, start_time, end_time) VALUES
+INSERT OR IGNORE INTO class_schedule (session_number, start_time, end_time) VALUES
 (1, '07:20:00', '08:05:00'),
 (2, '08:10:00', '08:55:00'),
 (3, '09:00:00', '09:45:00'),
@@ -83,12 +85,12 @@ INSERT INTO class_schedule (session_number, start_time, end_time) VALUES
 (5, '10:45:00', '11:30:00');
 
 -- Insert semester configuration
-INSERT INTO semester_config (semester_name, start_date, end_date, total_sessions, is_active) VALUES
+INSERT OR IGNORE INTO semester_config (semester_name, start_date, end_date, total_sessions, is_active) VALUES
 ('Fall 2024', '2024-09-01', '2024-12-20', 90, 1),
 ('Spring 2024', '2024-01-15', '2024-05-15', 85, 0);
 
 -- Insert ALL 100 students (YOUR ORIGINAL LIST)
-INSERT INTO students (name) VALUES
+INSERT OR IGNORE INTO students (name) VALUES
 ('John Smith'),('Emily Johnson'),('Michael Brown'),('Sarah Davis'),('David Wilson'),
 ('Jennifer Miller'),('Christopher Moore'),('Jessica Taylor'),('Matthew Anderson'),('Ashley Thomas'),
 ('James Jackson'),('Elizabeth White'),('Daniel Harris'),('Michelle Martin'),('Robert Thompson'),
@@ -111,8 +113,7 @@ INSERT INTO students (name) VALUES
 ('Lori West'),('Bruce Jordan'),('Diana Owens'),('Ethan Reynolds'),('Marie Fisher');
 
 -- UPDATED: Insert student circumstances with session-specific excuses
--- Updated: More realistic high school student circumstances
-INSERT INTO student_circumstances (student_id, circumstance_type, description, start_date, end_date, session_numbers, excuse_type) VALUES
+INSERT OR IGNORE INTO student_circumstances (student_id, circumstance_type, description, start_date, end_date, session_numbers, excuse_type) VALUES
 (1, 'transportation', 'Bus route from north side often runs late in morning traffic', '2024-09-01', '2024-12-20', '1', 'late_arrival'),
 (3, 'medical', 'Weekly allergy shots on Tuesday mornings', '2024-09-01', '2024-11-15', '1,2', 'late_arrival'),
 (5, 'transportation', 'Parent works early shift, sometimes late dropping off', '2024-09-01', '2024-12-20', '1', 'late_arrival'),
@@ -145,23 +146,19 @@ INSERT INTO student_circumstances (student_id, circumstance_type, description, s
 (88, 'extracurricular', 'Science Olympiad team competitions monthly', '2024-09-01', '2024-12-20', '3,4,5', 'full'),
 (99, 'family', 'Parent-teacher conference appointments', '2024-09-01', '2024-12-20', '2,3', 'partial');
 
--- Add session_number column to attendance_sessions
-ALTER TABLE attendance_sessions ADD COLUMN session_number INTEGER;
-
 -- Insert sample attendance data for last 7 days WITH session_number
-INSERT INTO attendance_sessions (student_id, session_date, entry_time, session_number, duration_minutes, attendance_status, late_minutes)
+INSERT OR IGNORE INTO attendance_sessions (student_id, session_date, entry_time, session_number, duration_minutes, attendance_status, late_minutes)
 SELECT 
     s.id as student_id,
     date('now', '-' || (abs(random()) % 7) || ' days') as session_date,
     time('07:20:00', '+' || (abs(random()) % 45) || ' minutes') as entry_time,
-    -- 🎯 ADDED: Determine session_number based on entry_time
     CASE 
         WHEN time('07:20:00', '+' || (abs(random()) % 45) || ' minutes') BETWEEN '07:20:00' AND '08:05:00' THEN 1
         WHEN time('07:20:00', '+' || (abs(random()) % 45) || ' minutes') BETWEEN '08:10:00' AND '08:55:00' THEN 2
         WHEN time('07:20:00', '+' || (abs(random()) % 45) || ' minutes') BETWEEN '09:00:00' AND '09:45:00' THEN 3
         WHEN time('07:20:00', '+' || (abs(random()) % 45) || ' minutes') BETWEEN '09:55:00' AND '10:40:00' THEN 4
         WHEN time('07:20:00', '+' || (abs(random()) % 45) || ' minutes') BETWEEN '10:45:00' AND '11:30:00' THEN 5
-        ELSE 1  -- Default to session 1 if outside normal hours
+        ELSE 1
     END as session_number,
     abs(random()) % 20 + 40 as duration_minutes,
     CASE abs(random()) % 10
@@ -174,12 +171,12 @@ SELECT
         WHEN abs(random()) % 4 = 0 THEN abs(random()) % 30
         ELSE 0
     END as late_minutes
-FROM students s  -- 🎯 FIX: This should be BEFORE the WHERE clause
-WHERE abs(random()) % 10 < 8  -- 80% attendance rate
+FROM students s
+WHERE abs(random()) % 10 < 8
 LIMIT 500;
 
 -- Create daily attendance summaries
-INSERT INTO daily_attendance (student_id, attendance_date, total_sessions, total_minutes, attendance_status, late_minutes, attendance_score)
+INSERT OR IGNORE INTO daily_attendance (student_id, attendance_date, total_sessions, total_minutes, attendance_status, late_minutes, attendance_score)
 SELECT 
     student_id,
     session_date as attendance_date,
