@@ -1,0 +1,11 @@
+2025-11-21 20:34:32 - models.arcface - INFO - Initializing ArcFace model from ./weights/w600k_mbf.onnx
+2025-11-21 20:34:32 - models.arcface - INFO - Successfully initialized face encoder from ./weights/w600k_mbf.onnx (embedding size: 512)
+2025-11-21 20:34:32 - root - INFO - Database initialized successfully
+2025-11-21 20:34:32 - root - INFO - Building face database from images...
+2025-11-21 20:34:32 - root - INFO - Processing person: Duy
+2025-11-21 20:34:32 - root - WARNING - No images found for Duy
+2025-11-21 20:34:32 - root - INFO - Face database saved with 0 faces
+2025-11-21 20:34:32 - root - INFO - Face database built successfully with 0 face embeddings
+2025-11-21 20:34:32 - root - INFO - Recognition thread started
+2025-11-21 20:34:32 - root - INFO - Loaded 0 registered students
+2025-11-21 20:34:38 - root - INFO - Starting attendance tracking with ByteTrack...

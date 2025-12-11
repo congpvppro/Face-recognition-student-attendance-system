@@ -1,0 +1,82 @@
+2025-12-11 23:49:40,057 - __main__ - INFO - Next scheduled run: 2025-12-12 12:00:00
+2025-12-12 00:10:32,710 - __main__ - INFO - ============================================================
+2025-12-12 00:10:32,710 - __main__ - INFO - STARTING DAILY ANALYSIS PIPELINE - 2025-12-12 00:10:32
+2025-12-12 00:10:32,710 - __main__ - INFO - ============================================================
+2025-12-12 00:10:32,839 - __main__ - ERROR - ERROR in daily pipeline: The api_key client option must be set either by passing api_key to the client or by setting the GROQ_API_KEY environment variable
+Traceback (most recent call last):
+  File "D:\Projects\Face-recognition-student-attendance-system\agent\agent_scheduler.py", line 47, in daily_analysis_pipeline
+    agent = AnalysisAgent()
+            ^^^^^^^^^^^^^^^
+  File "D:\Projects\Face-recognition-student-attendance-system\agent\AnalysisAgent.py", line 13, in __init__
+    self.llm = ChatGroq(api_key=os.getenv("GROQ_API_KEY"),
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Data_Science\CV\Lib\site-packages\langchain_core\load\serializable.py", line 116, in __init__
+    super().__init__(*args, **kwargs)
+  File "D:\Data_Science\CV\Lib\site-packages\pydantic\main.py", line 250, in __init__
+    validated_self = self.__pydantic_validator__.validate_python(data, self_instance=self)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Data_Science\CV\Lib\site-packages\langchain_groq\chat_models.py", line 477, in validate_environment
+    self.client = groq.Groq(
+                  ^^^^^^^^^^
+  File "D:\Data_Science\CV\Lib\site-packages\groq\_client.py", line 79, in __init__
+    raise GroqError(
+groq.GroqError: The api_key client option must be set either by passing api_key to the client or by setting the GROQ_API_KEY environment variable
+2025-12-12 00:12:43,255 - __main__ - INFO - ============================================================
+2025-12-12 00:12:43,255 - __main__ - INFO - STARTING DAILY ANALYSIS PIPELINE - 2025-12-12 00:12:43
+2025-12-12 00:12:43,255 - __main__ - INFO - ============================================================
+2025-12-12 00:12:43,432 - __main__ - ERROR - ERROR in daily pipeline: [Errno 2] No such file or directory
+Traceback (most recent call last):
+  File "D:\Projects\Face-recognition-student-attendance-system\agent\agent_scheduler.py", line 48, in daily_analysis_pipeline
+    agent = AnalysisAgent()
+            ^^^^^^^^^^^^^^^
+  File "D:\Projects\Face-recognition-student-attendance-system\agent\AnalysisAgent.py", line 13, in __init__
+    self.llm = ChatGroq(api_key=os.getenv("GROQ_API_KEY"),
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Data_Science\CV\Lib\site-packages\langchain_core\load\serializable.py", line 116, in __init__
+    super().__init__(*args, **kwargs)
+  File "D:\Data_Science\CV\Lib\site-packages\pydantic\main.py", line 250, in __init__
+    validated_self = self.__pydantic_validator__.validate_python(data, self_instance=self)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Data_Science\CV\Lib\site-packages\langchain_groq\chat_models.py", line 477, in validate_environment
+    self.client = groq.Groq(
+                  ^^^^^^^^^^
+  File "D:\Data_Science\CV\Lib\site-packages\groq\_client.py", line 89, in __init__
+    super().__init__(
+  File "D:\Data_Science\CV\Lib\site-packages\groq\_base_client.py", line 862, in __init__
+    self._client = http_client or SyncHttpxClientWrapper(
+                                  ^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Data_Science\CV\Lib\site-packages\groq\_base_client.py", line 792, in __init__
+    super().__init__(**kwargs)
+  File "D:\Data_Science\CV\Lib\site-packages\httpx\_client.py", line 688, in __init__
+    self._transport = self._init_transport(
+                      ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Data_Science\CV\Lib\site-packages\httpx\_client.py", line 731, in _init_transport
+    return HTTPTransport(
+           ^^^^^^^^^^^^^^
+  File "D:\Data_Science\CV\Lib\site-packages\httpx\_transports\default.py", line 153, in __init__
+    ssl_context = create_ssl_context(verify=verify, cert=cert, trust_env=trust_env)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Data_Science\CV\Lib\site-packages\httpx\_config.py", line 35, in create_ssl_context
+    ctx = ssl.create_default_context(cafile=os.environ["SSL_CERT_FILE"])
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Data_Science\CV\Lib\ssl.py", line 707, in create_default_context
+    context.load_verify_locations(cafile, capath, cadata)
+FileNotFoundError: [Errno 2] No such file or directory
+2025-12-12 00:14:27,861 - __main__ - INFO - ============================================================
+2025-12-12 00:14:27,861 - __main__ - INFO - STARTING DAILY ANALYSIS PIPELINE - 2025-12-12 00:14:27
+2025-12-12 00:14:27,861 - __main__ - INFO - ============================================================
+2025-12-12 00:14:28,814 - __main__ - INFO - Step 1: Generating daily insights...
+2025-12-12 00:14:28,876 - __main__ - INFO - Step 2: Evaluating past interventions...
+2025-12-12 00:14:28,879 - __main__ - INFO - Step 3: Analyzing student problems...
+2025-12-12 00:14:29,646 - httpx - INFO - HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2025-12-12 00:14:30,365 - httpx - INFO - HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2025-12-12 00:14:30,375 - __main__ - INFO -   - John Smith (1): LOW - Valid circumstances, bus monitoring worked
+2025-12-12 00:14:30,375 - __main__ - INFO -   - Emily Johnson (2): MEDIUM - 3 absences, no valid circumstances
+2025-12-12 00:14:30,375 - __main__ - INFO -   - Michael Brown (3): LOW - Valid medical circumstances, no previous intervention
+2025-12-12 00:14:30,376 - __main__ - INFO -   - Sarah Davis (4): LOW - No active circumstances, but no absence history provided and no past intervention history
+2025-12-12 00:14:30,376 - __main__ - INFO -   - David Wilson (5): LOW - Valid circumstances: transportation and family issues, previous intervention history not provided
+2025-12-12 00:14:30,376 - __main__ - INFO -   - Jennifer Miller (6): LOW - No active circumstances, but no absence history provided and no past intervention history
+2025-12-12 00:14:30,376 - __main__ - INFO - Step 4: Exporting report...
+2025-12-12 00:14:30,651 - __main__ - INFO - ============================================================
+2025-12-12 00:14:30,651 - __main__ - INFO - DAILY ANALYSIS COMPLETED SUCCESSFULLY
+2025-12-12 00:14:30,651 - __main__ - INFO - ============================================================
