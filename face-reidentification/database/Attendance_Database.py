@@ -12,16 +12,17 @@ from agent.Utility import init_sqlite_database
 from agent.Utility import get_current_session_direct, calculate_late_minutes, get_or_create_student
 from agent.NotifyAgent import NotifyAgent
 
-
 class AttendanceDatabase:
 
-    def __init__(self, db_path='attendance.db'):
+    def __init__(self, db_path='attendance.db', sql_path = "init_sqlitedb.sql"):
         self.db_path = db_path
         os.makedirs(os.path.dirname(db_path), exist_ok=True)
         self.connection = get_connection()
-        init_sqlite_database()
+        init_sqlite_database(db_path, sql_path)
         self.record_agent = RecordAgent()
 
+    def get_connection(self):
+        return get_connection(self.db_path)
     def _str_to_time(self, time_str):
         if isinstance(time_str, str):
             return datetime.strptime(time_str, '%H:%M:%S').time()
@@ -97,7 +98,7 @@ class AttendanceDatabase:
             if student_id is None:
                 return False
 
-            with self.connection as conn:
+            with get_connection(self.db_path) as conn:
                 cursor = conn.cursor()
                 current_date = datetime.now().strftime('%Y-%m-%d')
 
@@ -123,7 +124,7 @@ class AttendanceDatabase:
             if student_id is None:
                 return 0.0
 
-            with self.connection as conn:
+            with get_connection(self.db_path) as conn:
                 cursor = conn.cursor()
 
                 cursor.execute("""
@@ -148,7 +149,7 @@ class AttendanceDatabase:
 
     def drop_all_tables(self):
         try:
-            with self.connection as conn:
+            with get_connection(self.db_path) as conn:
                 cursor = conn.cursor()
 
                 cursor.execute("PRAGMA foreign_keys=OFF")

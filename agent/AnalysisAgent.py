@@ -1,15 +1,18 @@
 from datetime import datetime, date
-from Utility import get_connection
+from agent.Utility import get_connection
 import logging
-from Utility import get_student_name, active_check, get_student_circumstances
+from agent.Utility import get_student_name, active_check, get_student_circumstances
 import os
 from langchain_groq import ChatGroq
-
+from dotenv import load_dotenv
 
 class AnalysisAgent:
 
     def __init__(self):
         self.connection = get_connection()
+        import certifi
+        os.environ["SSL_CERT_FILE"] = certifi.where()
+        load_dotenv()
         self.llm = ChatGroq(api_key=os.getenv("GROQ_API_KEY"),
                             model_name="llama-3.3-70b-versatile",
                             temperature=0)

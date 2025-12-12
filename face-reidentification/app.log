@@ -9,3 +9,138 @@
 2025-11-21 20:34:32 - root - INFO - Recognition thread started
 2025-11-21 20:34:32 - root - INFO - Loaded 0 registered students
 2025-11-21 20:34:38 - root - INFO - Starting attendance tracking with ByteTrack...
+2025-12-12 11:17:31 - models.arcface - INFO - Initializing ArcFace model from ./weights/w600k_mbf.onnx
+2025-12-12 11:17:31 - models.arcface - INFO - Successfully initialized face encoder from ./weights/w600k_mbf.onnx (embedding size: 512)
+2025-12-12 11:17:31 - root - ERROR - Failed to load models or database: [WinError 3] The system cannot find the path specified: ''
+2025-12-12 11:28:17 - models.arcface - INFO - Initializing ArcFace model from ./weights/w600k_mbf.onnx
+2025-12-12 11:28:17 - models.arcface - INFO - Successfully initialized face encoder from ./weights/w600k_mbf.onnx (embedding size: 512)
+2025-12-12 11:28:17 - root - ERROR - Failed to load models or database: [WinError 3] The system cannot find the path specified: ''
+2025-12-12 11:32:21 - models.arcface - INFO - Initializing ArcFace model from ./weights/w600k_mbf.onnx
+2025-12-12 11:32:21 - models.arcface - INFO - Successfully initialized face encoder from ./weights/w600k_mbf.onnx (embedding size: 512)
+2025-12-12 11:32:21 - root - ERROR - Failed to load models or database: [WinError 3] The system cannot find the path specified: ''
+2025-12-12 11:54:06 - models.arcface - INFO - Initializing ArcFace model from ./weights/w600k_mbf.onnx
+2025-12-12 11:54:06 - models.arcface - INFO - Successfully initialized face encoder from ./weights/w600k_mbf.onnx (embedding size: 512)
+2025-12-12 11:54:06 - root - ERROR - Failed to load models or database: [WinError 3] The system cannot find the path specified: ''
+2025-12-12 12:03:44 - models.arcface - INFO - Initializing ArcFace model from ./weights/w600k_mbf.onnx
+2025-12-12 12:03:44 - models.arcface - INFO - Successfully initialized face encoder from ./weights/w600k_mbf.onnx (embedding size: 512)
+2025-12-12 12:03:44 - root - ERROR - Failed to load models or database: [WinError 3] The system cannot find the path specified: ''
+2025-12-12 12:22:41 - models.arcface - INFO - Initializing ArcFace model from ./weights/w600k_mbf.onnx
+2025-12-12 12:22:41 - models.arcface - INFO - Successfully initialized face encoder from ./weights/w600k_mbf.onnx (embedding size: 512)
+2025-12-12 12:22:41 - root - ERROR - Failed to load models or database: [WinError 3] The system cannot find the path specified: ''
+2025-12-12 12:33:58 - models.arcface - INFO - Initializing ArcFace model from ./weights/w600k_mbf.onnx
+2025-12-12 12:33:58 - models.arcface - INFO - Successfully initialized face encoder from ./weights/w600k_mbf.onnx (embedding size: 512)
+2025-12-12 12:33:58 - root - ERROR - Failed to load models or database: [WinError 3] The system cannot find the path specified: ''
+2025-12-12 12:37:59 - models.arcface - INFO - Initializing ArcFace model from ./weights/w600k_mbf.onnx
+2025-12-12 12:37:59 - models.arcface - INFO - Successfully initialized face encoder from ./weights/w600k_mbf.onnx (embedding size: 512)
+2025-12-12 12:37:59 - root - ERROR - Failed to load models or database: [WinError 3] The system cannot find the path specified: ''
+2025-12-12 12:38:43 - models.arcface - INFO - Initializing ArcFace model from ./weights/w600k_mbf.onnx
+2025-12-12 12:38:43 - models.arcface - INFO - Successfully initialized face encoder from ./weights/w600k_mbf.onnx (embedding size: 512)
+2025-12-12 12:38:43 - root - ERROR - Failed to load models or database: [WinError 3] The system cannot find the path specified: ''
+2025-12-12 12:39:47 - models.arcface - INFO - Initializing ArcFace model from ./weights/w600k_mbf.onnx
+2025-12-12 12:39:47 - models.arcface - INFO - Successfully initialized face encoder from ./weights/w600k_mbf.onnx (embedding size: 512)
+2025-12-12 12:39:47 - root - ERROR - Failed to load models or database: [WinError 3] The system cannot find the path specified: ''
+2025-12-12 12:43:53 - models.arcface - INFO - Initializing ArcFace model from ./weights/w600k_mbf.onnx
+2025-12-12 12:43:53 - models.arcface - INFO - Successfully initialized face encoder from ./weights/w600k_mbf.onnx (embedding size: 512)
+2025-12-12 12:43:53 - root - ERROR - Failed to load models or database: [WinError 123] The filename, directory name, or volume label syntax is incorrect: 'D:\\Projects\\Face-recognition-student-attendance-system\x0cace-reidentification'
+2025-12-12 12:44:46 - models.arcface - INFO - Initializing ArcFace model from ./weights/w600k_mbf.onnx
+2025-12-12 12:44:46 - models.arcface - INFO - Successfully initialized face encoder from ./weights/w600k_mbf.onnx (embedding size: 512)
+2025-12-12 12:44:46 - root - ERROR - Failed to load models or database: [WinError 3] The system cannot find the path specified: ''
+2025-12-12 12:46:28 - models.arcface - INFO - Initializing ArcFace model from ./weights/w600k_mbf.onnx
+2025-12-12 12:46:28 - models.arcface - INFO - Successfully initialized face encoder from ./weights/w600k_mbf.onnx (embedding size: 512)
+2025-12-12 12:46:28 - root - ERROR - Failed to load models or database: The api_key client option must be set either by passing api_key to the client or by setting the GROQ_API_KEY environment variable
+2025-12-12 12:52:58 - models.arcface - INFO - Initializing ArcFace model from ./weights/w600k_mbf.onnx
+2025-12-12 12:52:58 - models.arcface - INFO - Successfully initialized face encoder from ./weights/w600k_mbf.onnx (embedding size: 512)
+2025-12-12 12:52:58 - root - ERROR - Failed to load models or database: The api_key client option must be set either by passing api_key to the client or by setting the GROQ_API_KEY environment variable
+2025-12-12 12:55:53 - models.arcface - INFO - Initializing ArcFace model from ./weights/w600k_mbf.onnx
+2025-12-12 12:55:53 - models.arcface - INFO - Successfully initialized face encoder from ./weights/w600k_mbf.onnx (embedding size: 512)
+2025-12-12 12:55:54 - root - ERROR - Failed to load models or database: The api_key client option must be set either by passing api_key to the client or by setting the GROQ_API_KEY environment variable
+2025-12-12 12:57:16 - models.arcface - INFO - Initializing ArcFace model from ./weights/w600k_mbf.onnx
+2025-12-12 12:57:16 - models.arcface - INFO - Successfully initialized face encoder from ./weights/w600k_mbf.onnx (embedding size: 512)
+2025-12-12 12:57:16 - root - ERROR - Failed to load models or database: [Errno 2] No such file or directory
+2025-12-12 12:58:19 - models.arcface - INFO - Initializing ArcFace model from ./weights/w600k_mbf.onnx
+2025-12-12 12:58:19 - models.arcface - INFO - Successfully initialized face encoder from ./weights/w600k_mbf.onnx (embedding size: 512)
+2025-12-12 12:58:20 - root - ERROR - Failed to load models or database: [Errno 2] No such file or directory
+2025-12-12 12:59:35 - models.arcface - INFO - Initializing ArcFace model from ./weights/w600k_mbf.onnx
+2025-12-12 12:59:35 - models.arcface - INFO - Successfully initialized face encoder from ./weights/w600k_mbf.onnx (embedding size: 512)
+2025-12-12 12:59:36 - root - ERROR - Failed to load models or database: [Errno 2] No such file or directory
+2025-12-12 13:01:19 - models.arcface - INFO - Initializing ArcFace model from ./weights/w600k_mbf.onnx
+2025-12-12 13:01:19 - models.arcface - INFO - Successfully initialized face encoder from ./weights/w600k_mbf.onnx (embedding size: 512)
+2025-12-12 13:01:20 - root - ERROR - Failed to load models or database: [Errno 2] No such file or directory
+2025-12-12 13:07:49 - models.arcface - INFO - Initializing ArcFace model from ./weights/w600k_mbf.onnx
+2025-12-12 13:07:49 - models.arcface - INFO - Successfully initialized face encoder from ./weights/w600k_mbf.onnx (embedding size: 512)
+2025-12-12 13:07:50 - root - ERROR - Failed to load models or database: [Errno 2] No such file or directory
+2025-12-12 13:12:21 - models.arcface - INFO - Initializing ArcFace model from ./weights/w600k_mbf.onnx
+2025-12-12 13:12:21 - models.arcface - INFO - Successfully initialized face encoder from ./weights/w600k_mbf.onnx (embedding size: 512)
+2025-12-12 13:12:22 - root - INFO - Loaded face database with 0 faces
+2025-12-12 13:12:22 - root - INFO - Loaded face database from disk.
+2025-12-12 13:12:22 - root - ERROR - Error loading registered students: 'AttendanceDatabase' object has no attribute 'get_connection'
+2025-12-12 13:12:22 - root - INFO - Recognition thread started
+2025-12-12 13:12:34 - root - ERROR - Error during video processing: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte
+2025-12-12 13:13:12 - models.arcface - INFO - Initializing ArcFace model from ./weights/w600k_mbf.onnx
+2025-12-12 13:13:12 - models.arcface - INFO - Successfully initialized face encoder from ./weights/w600k_mbf.onnx (embedding size: 512)
+2025-12-12 13:13:13 - root - INFO - Loaded face database with 0 faces
+2025-12-12 13:13:13 - root - INFO - Loaded face database from disk.
+2025-12-12 13:13:13 - root - ERROR - Error loading registered students: SQLite objects created in a thread can only be used in that same thread. The object was created in thread id 12440 and this is thread id 6744.
+2025-12-12 13:13:13 - root - INFO - Recognition thread started
+2025-12-12 13:14:09 - root - ERROR - Error during video processing: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte
+2025-12-12 13:14:44 - models.arcface - INFO - Initializing ArcFace model from ./weights/w600k_mbf.onnx
+2025-12-12 13:14:44 - models.arcface - INFO - Successfully initialized face encoder from ./weights/w600k_mbf.onnx (embedding size: 512)
+2025-12-12 13:14:45 - root - INFO - Loaded face database with 0 faces
+2025-12-12 13:14:45 - root - INFO - Loaded face database from disk.
+2025-12-12 13:14:45 - root - INFO - Recognition thread started
+2025-12-12 13:14:45 - root - ERROR - Error loading registered students: no such table: students
+2025-12-12 13:14:53 - root - ERROR - Error during video processing: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte
+2025-12-12 13:15:18 - models.arcface - INFO - Initializing ArcFace model from ./weights/w600k_mbf.onnx
+2025-12-12 13:15:18 - models.arcface - INFO - Successfully initialized face encoder from ./weights/w600k_mbf.onnx (embedding size: 512)
+2025-12-12 13:15:19 - root - INFO - Loaded face database with 0 faces
+2025-12-12 13:15:19 - root - INFO - Loaded face database from disk.
+2025-12-12 13:15:19 - root - INFO - Recognition thread started
+2025-12-12 13:15:19 - root - ERROR - Error loading registered students: no such table: students
+2025-12-12 13:15:54 - root - ERROR - Error during video processing: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte
+2025-12-12 13:16:10 - models.arcface - INFO - Initializing ArcFace model from ./weights/w600k_mbf.onnx
+2025-12-12 13:16:10 - models.arcface - INFO - Successfully initialized face encoder from ./weights/w600k_mbf.onnx (embedding size: 512)
+2025-12-12 13:16:11 - root - INFO - Loaded face database with 0 faces
+2025-12-12 13:16:11 - root - INFO - Loaded face database from disk.
+2025-12-12 13:16:11 - root - INFO - Recognition thread started
+2025-12-12 13:16:11 - root - ERROR - Error loading registered students: no such table: students
+2025-12-12 13:16:17 - root - INFO - Starting attendance tracking with ByteTrack...
+2025-12-12 13:16:19 - root - ERROR - Error during video processing: no such table: class_schedule
+2025-12-12 13:26:00 - models.arcface - INFO - Initializing ArcFace model from ./weights/w600k_mbf.onnx
+2025-12-12 13:26:00 - models.arcface - INFO - Successfully initialized face encoder from ./weights/w600k_mbf.onnx (embedding size: 512)
+2025-12-12 13:26:01 - root - INFO - Loaded face database with 0 faces
+2025-12-12 13:26:01 - root - INFO - Loaded face database from disk.
+2025-12-12 13:26:01 - root - INFO - Recognition thread started
+2025-12-12 13:26:01 - root - INFO - Loaded 100 registered students
+2025-12-12 13:26:07 - root - INFO - Starting attendance tracking with ByteTrack...
+2025-12-12 13:26:09 - root - ERROR - Error during video processing: no such table: class_schedule
+2025-12-12 13:28:33 - models.arcface - INFO - Initializing ArcFace model from ./weights/w600k_mbf.onnx
+2025-12-12 13:28:33 - models.arcface - INFO - Successfully initialized face encoder from ./weights/w600k_mbf.onnx (embedding size: 512)
+2025-12-12 13:28:34 - root - INFO - Loaded face database with 0 faces
+2025-12-12 13:28:34 - root - INFO - Loaded face database from disk.
+2025-12-12 13:28:34 - root - INFO - Recognition thread started
+2025-12-12 13:28:34 - root - INFO - Loaded 100 registered students
+2025-12-12 13:28:57 - root - INFO - Starting attendance tracking with ByteTrack...
+2025-12-12 13:28:59 - root - ERROR - Error during video processing: no such table: class_schedule
+2025-12-12 13:34:22 - models.arcface - INFO - Initializing ArcFace model from ./weights/w600k_mbf.onnx
+2025-12-12 13:34:22 - models.arcface - INFO - Successfully initialized face encoder from ./weights/w600k_mbf.onnx (embedding size: 512)
+2025-12-12 13:34:23 - root - INFO - Loaded face database with 0 faces
+2025-12-12 13:34:23 - root - INFO - Loaded face database from disk.
+2025-12-12 13:34:23 - root - INFO - Recognition thread started
+2025-12-12 13:34:23 - root - INFO - Loaded 100 registered students
+2025-12-12 13:34:29 - root - INFO - Starting attendance tracking with ByteTrack...
+2025-12-12 13:34:30 - root - ERROR - Error during video processing: no such table: class_schedule
+2025-12-12 13:36:53 - models.arcface - INFO - Initializing ArcFace model from ./weights/w600k_mbf.onnx
+2025-12-12 13:36:54 - models.arcface - INFO - Successfully initialized face encoder from ./weights/w600k_mbf.onnx (embedding size: 512)
+2025-12-12 13:36:55 - root - INFO - Loaded face database with 0 faces
+2025-12-12 13:36:55 - root - INFO - Loaded face database from disk.
+2025-12-12 13:36:55 - root - INFO - Recognition thread started
+2025-12-12 13:36:55 - root - INFO - Loaded 100 registered students
+2025-12-12 13:38:01 - root - ERROR - Error during video processing: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte
+2025-12-12 13:38:15 - models.arcface - INFO - Initializing ArcFace model from ./weights/w600k_mbf.onnx
+2025-12-12 13:38:15 - models.arcface - INFO - Successfully initialized face encoder from ./weights/w600k_mbf.onnx (embedding size: 512)
+2025-12-12 13:38:16 - root - INFO - Loaded face database with 0 faces
+2025-12-12 13:38:16 - root - INFO - Loaded face database from disk.
+2025-12-12 13:38:16 - root - INFO - Recognition thread started
+2025-12-12 13:38:16 - root - INFO - Loaded 100 registered students
+2025-12-12 13:38:32 - root - INFO - Starting attendance tracking with ByteTrack...
+2025-12-12 13:38:33 - root - ERROR - Error during video processing: no such table: class_schedule

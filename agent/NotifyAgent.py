@@ -1,10 +1,12 @@
-from Utility import get_connection
+from agent.Utility import get_connection
 from datetime import datetime
 from sqlite3 import Error
 
 
 class NotifyAgent:
     def __init__(self):
+        import certifi
+        os.environ["SSL_CERT_FILE"] = certifi.where()
         self.connection = get_connection()
 
     def get_expected_students(self):

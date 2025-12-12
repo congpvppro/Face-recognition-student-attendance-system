@@ -1,20 +1,26 @@
 import os
-from Utility import init_sqlite_database, get_connection, get_student_circumstances
-from Utility import get_student_attendance_history, parse_ai_response, calculate_late_minutes
-from Utility import (get_or_create_student, get_session_by_number, get_current_session_direct,
+from agent.Utility import init_sqlite_database, get_connection, get_student_circumstances
+from agent.Utility import get_student_attendance_history, parse_ai_response, calculate_late_minutes
+from agent.Utility import (get_or_create_student, get_session_by_number, get_current_session_direct,
                      get_current_session_with_time)
 from langchain_groq import ChatGroq
 import logging
 from datetime import datetime
+from dotenv import load_dotenv
+
+
 
 
 class RecordAgent:
 
-    def __init__(self, db_path="attendance.db"):
+    def __init__(self, db_path="../database/attendance.db", sql_path = "../database/init_sqlitedb.sql"):
+        load_dotenv()
+        import certifi
+        os.environ["SSL_CERT_FILE"] = certifi.where()
         self.db_path = db_path
         os.makedirs(os.path.dirname(db_path), exist_ok=True)
-        self.connection = get_connection()
-        init_sqlite_database()
+        self.connection = get_connection(self.db_path)
+        # init_sqlite_database(db_path, sql_path)
         self.llm = ChatGroq(api_key=os.getenv("GROQ_API_KEY"),
                             model_name="llama-3.3-70b-versatile",
                             temperature=0)
@@ -391,7 +397,7 @@ class RecordAgent:
             student_id = get_or_create_student(name)
             if student_id is None:
                 return None
-            with get_connection() as conn:
+            with get_connection(self.db_path) as conn:
                 cursor = conn.cursor()
                 current_date = datetime.now().strftime('%Y-%m-%d')
                 current_time = datetime.now().time()

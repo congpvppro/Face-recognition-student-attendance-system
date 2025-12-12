@@ -1,4 +1,5 @@
 import os
+
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'TRUE'
 import threading
 
@@ -38,8 +39,10 @@ recognition_ready = threading.Event()
 
 id_face_mapping = {}
 
-def parse_args():
+from dotenv import load_dotenv
+load_dotenv()
 
+def parse_args():
     parser = argparse.ArgumentParser(description="Face Recognition Attendance with ByteTrack")
 
     parser.add_argument("--det-weight", type=str, default="./weights/det_500m.onnx", help="Path to detection model")
@@ -64,7 +67,9 @@ def parse_args():
     parser.add_argument("--min-box-area", type=int, default=100, help="Minimum bbox area")
 
     # SQLite parameters
-    parser.add_argument("--attendance-db-path", type=str, default="./database/attendance.db", help="Path to SQLite attendance database")
+    parser.add_argument("--attendance-db-path", type=str, default="./database/attendance.db",
+                        help="Path to SQLite attendance database")
+    parser.add_argument("--sql-path", type=str, default="./database/init_sqlitedb.sql", help="Path to SQLite init")
 
     return parser.parse_args()
 
@@ -133,8 +138,8 @@ def build_face_database(detector: SCRFD, recognizer: ArcFace, params: argparse.N
     logging.info(f"Face database built successfully with {face_db.index.ntotal} face embeddings")
     return face_db
 
-def load_config(file_name):
 
+def load_config(file_name):
     with open(file_name, "r") as stream:
         try:
             return yaml.safe_load(stream)
@@ -324,12 +329,11 @@ def recognition(recognizer: ArcFace, face_db: FaceDatabase, attendance_tracker: 
 def tracking(detector, recognizer, attendance_db, config_tracking, params, stop_event):
     tracker = BYTETracker(args=config_tracking, frame_rate=30)
 
-    # ADD: Variables for absent checking
+
     session_start_checked = False
     check_time = None
     registered_students = []  # Load from database or config file
 
-    # ADD: Load registered students from database
     try:
         with attendance_db.get_connection() as conn:
             cursor = conn.cursor()
@@ -476,6 +480,7 @@ def tracking(detector, recognizer, attendance_db, config_tracking, params, stop_
             out.release()
         cv2.destroyAllWindows()
 
+
 def main(params):
     try:
         detector = SCRFD(params.det_weight, input_size=(640, 640), conf_thres=params.confidence_thresh)
@@ -483,7 +488,12 @@ def main(params):
         anti_spoofing = AntiSpoof(params.spoof_weight)
         file_name = "models/face_tracking/config_tracking.yaml"
         config_tracking = load_config(file_name)
-        attendance_db = AttendanceDatabase(db_path=params.attendance_db_path)
+        # Nho sua cho nay
+        attendance_db = AttendanceDatabase(
+            db_path=r"D:\Projects\Face-recognition-student-attendance-system\face-reidentification\database\attendance.db",
+            sql_path=r"D:\Projects\Face-recognition-student-attendance-system\face-reidentification\database\init_sqlitedb.sql"
+        )
+
     except Exception as e:
         logging.error(f"Failed to load models or database: {e}")
         return
@@ -504,15 +514,15 @@ def main(params):
 
     thread_recognize = threading.Thread(
         target=recognition,
-        args=(recognizer, face_db, attendance_tracker, last_seen, params,stop_event),
+        args=(recognizer, face_db, attendance_tracker, last_seen, params, stop_event),
         daemon=True
     )
     thread_recognize.start()
 
-
     thread_track.join()
     stop_event.set()
     thread_recognize.join(timeout=2)
+
 
 if __name__ == '__main__':
     args = parse_args()

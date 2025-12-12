@@ -5,54 +5,75 @@ from langchain_community.utilities import SQLDatabase
 
 from datetime import datetime
 import logging
+import certifi
+
+os.environ["SSL_CERT_FILE"] = certifi.where()
 
 
-def init_sqlite_database():
-    """init from init_sqlite.sql"""
+def init_sqlite_database(db_path="attendance.db", sql_path="init_sqlitedb.sql"):
+    """init from init_sqlite.sql - only runs if tables don't exist"""
     try:
-        db_path = "attendance.db"
+        import os
+        import sqlite3
 
-        if not os.path.exists("init_sqlitedb.sql"):
-            print("No init file")
+        print(f"\n=== init_sqlite_database() ===")
+        print(f"Database: {db_path}")
+
+        if not os.path.exists(sql_path):
+            print(f"ERROR: SQL file not found: {sql_path}")
             return None
 
-        # init because found
+        db_dir = os.path.dirname(db_path)
+        if db_dir and not os.path.exists(db_dir):
+            os.makedirs(db_dir, exist_ok=True)
 
         conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
 
-        # Reading and executing the file
-        with open("init_sqlitedb.sql", "r") as f:
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';")
+        existing_tables = [row[0] for row in cursor.fetchall()]
+
+        print(f"Existing tables: {existing_tables}")
+
+        required_tables = [
+            'students',
+            'attendance_sessions',
+            'class_schedule',
+            'semester_config',
+            'student_circumstances',
+            'student_daily_insights',
+            'agent_analysis_log'
+        ]
+
+        missing_tables = [table for table in required_tables if table not in existing_tables]
+
+        if not missing_tables:
+            print(f"✓ All required tables exist, skipping initialization")
+            conn.close()
+            return SQLDatabase.from_uri(f"sqlite:///{db_path}")
+
+        print(f"Missing tables: {missing_tables}")
+        print(f"Running SQL script to create missing tables...")
+
+        with open(sql_path, "r") as f:
             sql_script = f.read()
 
         cursor.executescript(sql_script)
-        conn.commit()  # Saving
+        conn.commit()
 
-        cursor.execute("SELECT name FROM sqlite_master WHERE type = 'table';")
-        tables = [table[0] for table in cursor.fetchall()]
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';")
+        tables = [row[0] for row in cursor.fetchall()]
 
         conn.close()
-        print(f"Create SQLite db with tables: {tables}")
+        print(f"✓ Created tables: {tables}")
+
         return SQLDatabase.from_uri(f"sqlite:///{db_path}")
+
     except Exception as e:
-        print("Failed to init sql db:")
-        print(e)
+        print(f"Failed to init sql db: {e}")
+        import traceback
+        traceback.print_exc()
         return None
-
-
-def test_connection():
-    try:
-        db = SQLDatabase.from_uri("sqlite:///attendance.db")
-        tables = db.get_usable_table_names()
-        print(f"Connected, found: {tables}")
-
-        result = db.run("SELECT COUNT(*) as student_count FROM students")
-        print(f"📊 Students in database: {result}")
-        return db
-    except Exception as e:
-        print(f"Connection failed: {e}")
-        print("Creating a new sql db")
-        return init_sqlite_database()
 
 
 def parse_ai_response(ai_response, expected_values):
@@ -98,9 +119,9 @@ def parse_ai_response(ai_response, expected_values):
         return None
 
 
-def get_connection(row_factory=None):
+def get_connection(db_path="attendance.db", row_factory=None):
     """Connect to db"""
-    conn = sqlite3.connect("attendance.db")
+    conn = sqlite3.connect(db_path)
     if row_factory:
         conn.row_factory = row_factory
     return conn
@@ -475,6 +496,7 @@ def export_student_report(student_id=None, date=None, format='csv'):
                         writer.writerow([sid, name, 0, 0, 0, 0, "0%", 0, date])
 
         return filename
+
 
 def get_student_attendance_graph_data(student_id, target_date=None, days_before=30):
     """Attendance rate based on present - absent/ total"""
