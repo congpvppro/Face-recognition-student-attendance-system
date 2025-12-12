@@ -328,7 +328,13 @@ def recognition(recognizer: ArcFace, face_db: FaceDatabase, attendance_tracker: 
 
 def tracking(detector, recognizer, attendance_db, config_tracking, params, stop_event):
     tracker = BYTETracker(args=config_tracking, frame_rate=30)
-
+    print("\n" + "="*70)
+    print("DEBUG: DATABASE INFORMATION")
+    print("="*70)
+    print(f"Database path (from attendance_db): {attendance_db.db_path}")
+    print(f"Params attendance_db_path: {params.attendance_db_path}")
+    print(f"Params sql_path: {params.sql_path}")
+    print("="*70 + "\n")
 
     session_start_checked = False
     check_time = None

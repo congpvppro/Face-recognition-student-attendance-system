@@ -17,11 +17,12 @@ class AttendanceDatabase:
     def __init__(self, db_path='attendance.db', sql_path = "init_sqlitedb.sql"):
         self.db_path = db_path
         os.makedirs(os.path.dirname(db_path), exist_ok=True)
-        self.connection = get_connection()
+        self.connection = get_connection(db_path)
         init_sqlite_database(db_path, sql_path)
         self.record_agent = RecordAgent()
 
     def get_connection(self):
+        print(self.db_path)
         return get_connection(self.db_path)
     def _str_to_time(self, time_str):
         if isinstance(time_str, str):
@@ -29,8 +30,8 @@ class AttendanceDatabase:
         return time_str
 
     def get_current_session_time(self):
-        return get_current_session_direct()
-
+        result = get_current_session_direct()
+        return None if result == "No active session" else result
     def calculate_late_minutes(self, entry_time, scheduled_start_time):
         calculate_late_minutes(entry_time, scheduled_start_time)
 

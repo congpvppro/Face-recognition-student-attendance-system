@@ -144,3 +144,57 @@
 2025-12-12 13:38:16 - root - INFO - Loaded 100 registered students
 2025-12-12 13:38:32 - root - INFO - Starting attendance tracking with ByteTrack...
 2025-12-12 13:38:33 - root - ERROR - Error during video processing: no such table: class_schedule
+2025-12-12 14:24:17 - models.arcface - INFO - Initializing ArcFace model from ./weights/w600k_mbf.onnx
+2025-12-12 14:24:17 - models.arcface - INFO - Successfully initialized face encoder from ./weights/w600k_mbf.onnx (embedding size: 512)
+2025-12-12 14:24:18 - root - INFO - Loaded face database with 0 faces
+2025-12-12 14:24:18 - root - INFO - Loaded face database from disk.
+2025-12-12 14:24:18 - root - INFO - Recognition thread started
+2025-12-12 14:24:18 - root - INFO - Loaded 100 registered students
+2025-12-12 14:24:22 - root - INFO - Starting attendance tracking with ByteTrack...
+2025-12-12 14:24:23 - root - ERROR - Error during video processing: no such table: class_schedule
+2025-12-12 14:28:37 - models.arcface - INFO - Initializing ArcFace model from ./weights/w600k_mbf.onnx
+2025-12-12 14:28:37 - models.arcface - INFO - Successfully initialized face encoder from ./weights/w600k_mbf.onnx (embedding size: 512)
+2025-12-12 14:28:38 - root - INFO - Loaded face database with 0 faces
+2025-12-12 14:28:38 - root - INFO - Loaded face database from disk.
+2025-12-12 14:28:38 - root - INFO - Recognition thread started
+2025-12-12 14:28:38 - root - INFO - Loaded 100 registered students
+2025-12-12 14:28:44 - root - INFO - Starting attendance tracking with ByteTrack...
+2025-12-12 14:28:46 - root - ERROR - Error during video processing: no such table: class_schedule
+2025-12-12 14:30:05 - models.arcface - INFO - Initializing ArcFace model from ./weights/w600k_mbf.onnx
+2025-12-12 14:30:05 - models.arcface - INFO - Successfully initialized face encoder from ./weights/w600k_mbf.onnx (embedding size: 512)
+2025-12-12 14:30:06 - root - INFO - Loaded face database with 0 faces
+2025-12-12 14:30:06 - root - INFO - Loaded face database from disk.
+2025-12-12 14:30:06 - root - INFO - Recognition thread started
+2025-12-12 14:30:06 - root - INFO - Loaded 100 registered students
+2025-12-12 14:31:05 - root - INFO - Starting attendance tracking with ByteTrack...
+2025-12-12 14:31:06 - root - ERROR - Error during video processing: no such table: class_schedule
+2025-12-12 14:33:28 - models.arcface - INFO - Initializing ArcFace model from ./weights/w600k_mbf.onnx
+2025-12-12 14:33:28 - models.arcface - INFO - Successfully initialized face encoder from ./weights/w600k_mbf.onnx (embedding size: 512)
+2025-12-12 14:33:29 - root - INFO - Loaded face database with 0 faces
+2025-12-12 14:33:29 - root - INFO - Loaded face database from disk.
+2025-12-12 14:33:29 - root - INFO - Recognition thread started
+2025-12-12 14:33:29 - root - INFO - Loaded 100 registered students
+2025-12-12 14:33:32 - root - INFO - Starting attendance tracking with ByteTrack...
+2025-12-12 14:33:33 - root - ERROR - Error during video processing: string indices must be integers, not 'str'
+2025-12-12 14:38:29 - models.arcface - INFO - Initializing ArcFace model from ./weights/w600k_mbf.onnx
+2025-12-12 14:38:29 - models.arcface - INFO - Successfully initialized face encoder from ./weights/w600k_mbf.onnx (embedding size: 512)
+2025-12-12 14:38:30 - root - INFO - Loaded face database with 0 faces
+2025-12-12 14:38:30 - root - INFO - Loaded face database from disk.
+2025-12-12 14:38:30 - root - INFO - Recognition thread started
+2025-12-12 14:38:30 - root - INFO - Loaded 100 registered students
+2025-12-12 14:38:34 - root - INFO - Starting attendance tracking with ByteTrack...
+2025-12-12 14:38:36 - root - ERROR - Error during video processing: string indices must be integers, not 'str'
+2025-12-12 14:41:13 - models.arcface - INFO - Initializing ArcFace model from ./weights/w600k_mbf.onnx
+2025-12-12 14:41:13 - models.arcface - INFO - Successfully initialized face encoder from ./weights/w600k_mbf.onnx (embedding size: 512)
+2025-12-12 14:41:15 - root - INFO - Loaded face database with 0 faces
+2025-12-12 14:41:15 - root - INFO - Loaded face database from disk.
+2025-12-12 14:41:15 - root - INFO - Recognition thread started
+2025-12-12 14:41:15 - root - INFO - Loaded 100 registered students
+2025-12-12 14:41:19 - root - INFO - Starting attendance tracking with ByteTrack...
+2025-12-12 14:43:04 - models.arcface - INFO - Initializing ArcFace model from ./weights/w600k_mbf.onnx
+2025-12-12 14:43:04 - models.arcface - INFO - Successfully initialized face encoder from ./weights/w600k_mbf.onnx (embedding size: 512)
+2025-12-12 14:43:05 - root - INFO - Loaded face database with 0 faces
+2025-12-12 14:43:05 - root - INFO - Loaded face database from disk.
+2025-12-12 14:43:05 - root - INFO - Recognition thread started
+2025-12-12 14:43:05 - root - INFO - Loaded 100 registered students
+2025-12-12 14:43:09 - root - INFO - Starting attendance tracking with ByteTrack...

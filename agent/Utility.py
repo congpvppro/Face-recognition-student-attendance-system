@@ -119,7 +119,7 @@ def parse_ai_response(ai_response, expected_values):
         return None
 
 
-def get_connection(db_path="attendance.db", row_factory=None):
+def get_connection(db_path="../face-reidentification/database/attendance.db", row_factory=None):
     """Connect to db"""
     conn = sqlite3.connect(db_path)
     if row_factory:
