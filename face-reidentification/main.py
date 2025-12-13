@@ -17,6 +17,9 @@ from database import FaceDatabase
 from models import SCRFD, ArcFace, AntiSpoof, AttendanceTracker
 from utils.logging import setup_logging
 from datetime import datetime
+from agent.agent_scheduler import start_analysis_scheduler
+
+from agent.notify_agent_scheduler import start_notify_scheduler
 
 warnings.filterwarnings("ignore")
 setup_logging(log_to_file=True)
@@ -40,7 +43,9 @@ recognition_ready = threading.Event()
 id_face_mapping = {}
 
 from dotenv import load_dotenv
+
 load_dotenv()
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Face Recognition Attendance with ByteTrack")
@@ -328,17 +333,10 @@ def recognition(recognizer: ArcFace, face_db: FaceDatabase, attendance_tracker: 
 
 def tracking(detector, recognizer, attendance_db, config_tracking, params, stop_event):
     tracker = BYTETracker(args=config_tracking, frame_rate=30)
-    print("\n" + "="*70)
-    print("DEBUG: DATABASE INFORMATION")
-    print("="*70)
-    print(f"Database path (from attendance_db): {attendance_db.db_path}")
-    print(f"Params attendance_db_path: {params.attendance_db_path}")
-    print(f"Params sql_path: {params.sql_path}")
-    print("="*70 + "\n")
-
     session_start_checked = False
     check_time = None
     registered_students = []  # Load from database or config file
+
 
     try:
         with attendance_db.get_connection() as conn:
@@ -503,7 +501,8 @@ def main(params):
     except Exception as e:
         logging.error(f"Failed to load models or database: {e}")
         return
-
+    start_analysis_scheduler("12:00")
+    start_notify_scheduler(delay_minutes=5)
     face_db = build_face_database(detector, recognizer, params, force_update=params.update_db)
 
     last_seen = {}

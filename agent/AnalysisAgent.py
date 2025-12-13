@@ -319,7 +319,7 @@ class AnalysisAgent:
             return cursor.fetchall()
 
     @staticmethod
-    # used to show on the graph the reason for tusdent score on that day
+    # used to show on the graph the reason for student score on that day
     def get_session_attendance(date=None):
         """Show attendance per class period """
         if date is None:

@@ -1,12 +1,11 @@
-import schedule
-import time
+
 import sys
 import os
 import signal
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from AnalysisAgent import AnalysisAgent
+from agent.AnalysisAgent import AnalysisAgent
 
 RUNNING = True
 import certifi
@@ -15,6 +14,11 @@ from dotenv import load_dotenv
 # Set SSL certificate for HTTPS connections
 os.environ["SSL_CERT_FILE"] = certifi.where()
 print("SSL_CERT_FILE set to:", os.environ["SSL_CERT_FILE"])
+
+import schedule
+import time
+import threading
+from agent.AnalysisAgent import AnalysisAgent
 
 load_dotenv()
 
@@ -126,6 +130,44 @@ def main():
     except KeyboardInterrupt:
         print("\nExiting...")
 
+
+def run_daily_analysis():
+    """Run the daily analysis task"""
+    print(f"\n[{time.strftime('%H:%M:%S')}] Starting daily analysis...")
+    try:
+        agent = AnalysisAgent()
+
+        result1 = agent.generate_daily_insights()
+        print(f"[{time.strftime('%H:%M:%S')}] Insights generated")
+
+        result2 = agent.evaluate_past_interventions()
+        print(f"[{time.strftime('%H:%M:%S')}] Interventions evaluated")
+
+        result3 = agent.analysis_student_problems()
+        if result3:
+            print(f"[{time.strftime('%H:%M:%S')}] Analyzed {len(result3)} students")
+
+        print(f"[{time.strftime('%H:%M:%S')}] Analysis complete")
+    except Exception as e:
+        print(f"[{time.strftime('%H:%M:%S')}] Analysis error: {e}")
+
+
+def start_analysis_scheduler(time_str="12:00"):
+    """Start the scheduler in background thread"""
+    schedule.clear()
+    schedule.every().day.at(time_str).do(run_daily_analysis)
+
+    def scheduler_loop():
+        while True:
+            schedule.run_pending()
+            time.sleep(60)  # Check every minute
+
+    # Start in background thread
+    thread = threading.Thread(target=scheduler_loop, daemon=True)
+    thread.start()
+    print(f"Analysis scheduler started. Daily at {time_str}")
+
+    return thread
 
 if __name__ == "__main__":
     main()
