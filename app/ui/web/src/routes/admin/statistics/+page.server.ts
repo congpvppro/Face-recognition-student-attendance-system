@@ -2,37 +2,48 @@ import { api } from "$lib/server/http";
 import type { PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async (event) => {
-	const client = api(event);
-	const classId = event.url.searchParams.get("classId");
-	const date = event.url.searchParams.get("date");
+  const client = api(event);
+  const { url } = event;
 
-	const params = new URLSearchParams();
-	if (classId) params.append("classId", classId);
-	if (date) params.append("date", date);
+  // Get classId and date from URL search params, providing defaults
+  const classId = url.searchParams.get("classId");
+  const date =
+    url.searchParams.get("date") || new Date().toISOString().split("T")[0];
 
-	try {
-		const [attendance, classes, students] = await Promise.all([
-			client.get(`api/attendance?${params.toString()}`).json<any[]>(),
-			client.get("api/classes").json<any[]>(),
-			client.get("api/students").json<any[]>(),
-		]);
+  try {
+    // Always fetch the list of all classes for the dropdown
+    const classes = await client.get("api/classes").json<any[]>();
 
-		let absentStudents: any[] = [];
-		if (classId) {
-			const allStudentsInClass = students.filter(
-				(s: any) => String(s.class_id) === classId,
-			);
-			const presentStudentIds = new Set(
-				attendance.map((a: any) => a.student_id),
-			);
-			absentStudents = allStudentsInClass.filter(
-				(s: any) => !presentStudentIds.has(s.id),
-			);
-		}
+    let attendance = [];
+    let students = [];
 
-		return { attendance, classes, absentStudents, filters: { classId, date } };
-	} catch (error) {
-		console.error("Failed to load data:", error);
-		return { attendance: [], classes: [], filters: { classId, date } };
-	}
+    // If a class is selected, fetch its students and attendance for the selected date
+    if (classId) {
+      const classDetail = classes.find((c) => c.id === Number(classId));
+      if (classDetail) {
+        students = classDetail.students || [];
+      }
+
+      attendance = await client
+        .get(`api/attendance?classId=${classId}&date=${date}`)
+        .json<any[]>();
+    }
+
+    return {
+      classes,
+      students,
+      attendance,
+      selectedClassId: classId ? Number(classId) : null,
+      selectedDate: date,
+    };
+  } catch (error) {
+    console.error("Failed to load admin attendance data:", error);
+    return {
+      classes: [],
+      students: [],
+      attendance: [],
+      selectedClassId: null,
+      selectedDate: date,
+    };
+  }
 };

@@ -6,6 +6,8 @@
 	--font-josefin: "Josefin Sans Variable", sans-serif;
 	--font-raleway: "Raleway Variable", sans-serif;
 	--font-worksans: "Work Sans Variable", sans-serif;
+	--font-comorant: "Cormorant SC", serif;
+	--font-montserrat: "Montserrat", sans-serif;
 }
 
 @plugin "daisyui/theme" {

@@ -1,35 +1,34 @@
 import os
-
-os.environ['KMP_DUPLICATE_LIB_OK'] = 'TRUE'
-import threading
-
-import cv2
 import time
-import warnings
 import argparse
 import logging
+import threading
+import warnings
+from datetime import datetime
+
+os.environ['KMP_DUPLICATE_LIB_OK'] = 'TRUE'
+from dotenv import load_dotenv
+
+import cv2
 import numpy as np
-from database import AttendanceDatabase
 import yaml
+
+from database import AttendanceDatabase, FaceDatabase
+from models import SCRFD, ArcFace, AntiSpoof, AttendanceTracker
 from models.face_tracking.byte_tracker import BYTETracker
 from models.face_tracking.visualize import plot_tracking
-from database import FaceDatabase
-from models import SCRFD, ArcFace, AntiSpoof, AttendanceTracker
 from utils.logging import setup_logging
-from datetime import datetime
 from agent.agent_scheduler import start_analysis_scheduler
-
 from agent.notify_agent_scheduler import start_notify_scheduler
 
+load_dotenv()
 warnings.filterwarnings("ignore")
 setup_logging(log_to_file=True)
 
 COLOR_REAL = (0, 255, 0)
 COLOR_FAKE = (0, 0, 255)
 COLOR_UNKNOWN = (127, 127, 127)
-import threading
 
-# Replace the data_mapping dictionary with:
 data_mapping = {
     "raw_image": [],
     "tracking_ids": [],
@@ -39,37 +38,41 @@ data_mapping = {
 }
 data_lock = threading.Lock()
 recognition_ready = threading.Event()
-
 id_face_mapping = {}
-
-from dotenv import load_dotenv
-
-load_dotenv()
 
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Face Recognition Attendance with ByteTrack")
 
+    # Model Weights
     parser.add_argument("--det-weight", type=str, default="./weights/det_500m.onnx", help="Path to detection model")
     parser.add_argument("--rec-weight", type=str, default="./weights/w600k_mbf.onnx", help="Path to recognition model")
-    parser.add_argument("--spoof-weight", type=str, default="weights/AntiSpoofing_bin_1.5_128.onnx",
+    parser.add_argument("--spoof-weight", type=str, default="./weights/AntiSpoofing_bin_1.5_128.onnx",
                         help="Path to Anti-spoofing model")
+    
+    # Face Recognition Params
     parser.add_argument("--similarity-thresh", type=float, default=0.4, help="Similarity threshold between faces")
     parser.add_argument("--confidence-thresh", type=float, default=0.5, help="Confidence threshold for face detection")
     parser.add_argument("--faces-dir", type=str, default="./assets/faces", help="Path to faces stored dir")
     parser.add_argument("--max-num", type=int, default=0, help="Maximum number of face detections from a frame")
+    
+    # Vector DB
     parser.add_argument("--db-path", type=str, default="./database/face_database",
                         help="path to vector db and metadata")
     parser.add_argument("--update-db", action="store_true", help="Force update of the face database")
+    
+    # Output & Cooldowns
     parser.add_argument("--output", type=str, default="output_video.mp4", help="Output path for annotated video")
     parser.add_argument("--exit-cooldown", type=int, default=5, help="Seconds before marking someone as left")
     parser.add_argument("--attendance-cooldown", type=int, default=300,
                         help="Cooldown in seconds between attendance records")
+    
     # ByteTrack parameters
     parser.add_argument("--track-thresh", type=float, default=0.6, help="High confidence threshold for tracking")
     parser.add_argument("--track-buffer", type=int, default=30, help="Frames to keep lost tracks")
     parser.add_argument("--match-thresh", type=float, default=0.8, help="IoU threshold for matching")
     parser.add_argument("--min-box-area", type=int, default=100, help="Minimum bbox area")
+    parser.add_argument("--config-track", type=str, default="./models/face_tracking/config_tracking.yaml", help="Path to tracker config")
 
     # SQLite parameters
     parser.add_argument("--attendance-db-path", type=str, default="./database/attendance.db",
@@ -145,11 +148,17 @@ def build_face_database(detector: SCRFD, recognizer: ArcFace, params: argparse.N
 
 
 def load_config(file_name):
+    # Ensure path works relative to execution or absolute
+    if not os.path.exists(file_name):
+        logging.error(f"Configuration file not found: {file_name}")
+        return {}
+        
     with open(file_name, "r") as stream:
         try:
             return yaml.safe_load(stream)
         except yaml.YAMLError as exc:
-            print(exc)
+            logging.error(f"YAML load error: {exc}")
+            return {}
 
 
 def process_tracking(frame, detector, tracker, args, frame_id, fps):
@@ -189,9 +198,9 @@ def process_tracking(frame, detector, tracker, args, frame_id, fps):
     else:
         tracking_image = img_info["raw_img"]
 
-    # CHANGE: Use thread lock to safely update shared data
+    # Use thread lock to safely update shared data
     with data_lock:
-        data_mapping["raw_image"] = img_info["raw_img"].copy()  # Make a copy!
+        data_mapping["raw_image"] = img_info["raw_img"].copy()
         data_mapping["detection_bboxes"] = bboxes.copy() if len(bboxes) > 0 else []
         data_mapping["detection_landmarks"] = landmarks.copy() if len(landmarks) > 0 else []
         data_mapping["tracking_ids"] = tracking_ids.copy()
@@ -202,71 +211,6 @@ def process_tracking(frame, detector, tracker, args, frame_id, fps):
 
     return tracking_image
 
-
-# def recognition(recognizer: ArcFace, face_db: FaceDatabase, attendance_tracker: AttendanceTracker,
-#                 last_seen: dict, params: argparse.Namespace):
-#     """Recognition thread - runs continuously"""
-#     logging.info("Recognition thread started")
-#
-#     while True:
-#         # Wait for new tracking data
-#         recognition_ready.wait(timeout=1.0)
-#         recognition_ready.clear()
-#
-#         # Safely copy data we need
-#         with data_lock:
-#             # CHANGE: Better condition checking
-#             raw_image = data_mapping["raw_image"]
-#             detection_landmarks = data_mapping["detection_landmarks"]
-#
-#             # Check if data is valid
-#             if not isinstance(raw_image, np.ndarray) or raw_image.size == 0:
-#                 continue
-#             if not isinstance(detection_landmarks, (list, np.ndarray)) or len(detection_landmarks) == 0:
-#                 continue
-#
-#             frame = raw_image.copy()
-#             detection_landmarks = [kps.copy() for kps in detection_landmarks]
-#             tracking_bboxes = data_mapping["tracking_bboxes"].copy() if len(data_mapping["tracking_bboxes"]) > 0 else []
-#             tracking_ids = data_mapping["tracking_ids"].copy() if len(data_mapping["tracking_ids"]) > 0 else []
-#
-#         if len(detection_landmarks) == 0 or len(tracking_ids) == 0:
-#             continue
-#
-#         # Perform recognition
-#         embeddings = []
-#         current_time = time.time()
-#
-#         try:
-#             for kps in detection_landmarks:
-#                 embedding = recognizer.get_embedding(frame, kps)
-#                 embeddings.append(embedding)
-#         except Exception as e:
-#             logging.error(f"Error getting embeddings: {e}")
-#             continue
-#
-#         if embeddings and len(tracking_bboxes) == len(embeddings):
-#             results = face_db.batch_search(embeddings, params.similarity_thresh)
-#
-#             # Build tracked_objects for AttendanceTracker
-#             tracked_objects = {}
-#
-#             for i, ((name, similarity), track_id, bbox) in enumerate(zip(results, tracking_ids, tracking_bboxes)):
-#                 # Calculate centroid
-#                 centroid = ((bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2)
-#                 tracked_objects[track_id] = (centroid, name)
-#
-#                 if name != "Unknown":
-#                     # Update mapping for visualization
-#                     id_face_mapping[track_id] = name
-#
-#                     # Optional: Log first recognition (with cooldown)
-#                     if name not in last_seen or (current_time - last_seen[name]) >= 30:
-#                         last_seen[name] = current_time
-#                         logging.info(f"Recognized: {name} (similarity: {similarity:.3f})")
-#
-#             # Update attendance tracker (handles entry/exit)
-#             attendance_tracker.update(tracked_objects)
 
 def recognition(recognizer: ArcFace, face_db: FaceDatabase, attendance_tracker: AttendanceTracker,
                 last_seen: dict, params: argparse.Namespace, stop_event):
@@ -335,8 +279,7 @@ def tracking(detector, recognizer, attendance_db, config_tracking, params, stop_
     tracker = BYTETracker(args=config_tracking, frame_rate=30)
     session_start_checked = False
     check_time = None
-    registered_students = []  # Load from database or config file
-
+    registered_students = []
 
     try:
         with attendance_db.get_connection() as conn:
@@ -368,7 +311,7 @@ def tracking(detector, recognizer, attendance_db, config_tracking, params, stop_
             if not ret:
                 break
 
-            # ADD: Check for session start and mark absent students after 5 minutes
+            # Check for session start and mark absent students after 5 minutes
             current_time = datetime.now()
             session_info = attendance_db.get_current_session_time()
 
@@ -418,9 +361,10 @@ def tracking(detector, recognizer, attendance_db, config_tracking, params, stop_
                 stop_event.set()
                 break
             elif key == ord('b'):
+                # Warning: Rebuilding DB in main thread might freeze UI
                 face_db = build_face_database(detector, recognizer, params, force_update=True)
             elif key == ord('s') and full_name:
-                save_dir = os.path.join("assets/faces", full_name)
+                save_dir = os.path.join(params.faces_dir, full_name)
                 os.makedirs(save_dir, exist_ok=True)
                 cur_count = len(os.listdir(save_dir))
                 save_path = os.path.join(save_dir, f"{full_name}_{cur_count + 1}.jpg")
@@ -487,22 +431,34 @@ def tracking(detector, recognizer, attendance_db, config_tracking, params, stop_
 
 def main(params):
     try:
+        # Load models
         detector = SCRFD(params.det_weight, input_size=(640, 640), conf_thres=params.confidence_thresh)
         recognizer = ArcFace(params.rec_weight)
         anti_spoofing = AntiSpoof(params.spoof_weight)
-        file_name = "models/face_tracking/config_tracking.yaml"
-        config_tracking = load_config(file_name)
-        # Nho sua cho nay
+        
+        # Load tracker config
+        config_tracking = load_config(params.config_track)
+        if not config_tracking:
+            logging.error("Failed to load tracking config. Exiting.")
+            return
+
+        # Initialize Database using relative paths from arguments
         attendance_db = AttendanceDatabase(
-            db_path=r"D:\Projects\Face-recognition-student-attendance-system\face-reidentification\database\attendance.db",
-            sql_path=r"D:\Projects\Face-recognition-student-attendance-system\face-reidentification\database\init_sqlitedb.sql"
+            db_path=params.attendance_db_path,
+            sql_path=params.sql_path
         )
+        
+        logging.info("Models and Database initialized successfully.")
 
     except Exception as e:
         logging.error(f"Failed to load models or database: {e}")
         return
+
+    # Start Background Schedulers
     start_analysis_scheduler("12:00")
     start_notify_scheduler(delay_minutes=5)
+    
+    # Build or Load Face Vector DB
     face_db = build_face_database(detector, recognizer, params, force_update=params.update_db)
 
     last_seen = {}
@@ -510,6 +466,7 @@ def main(params):
 
     stop_event = threading.Event()
 
+    # Start Tracking Thread
     thread_track = threading.Thread(
         target=tracking,
         args=(detector, recognizer, attendance_db, config_tracking, params, stop_event),
@@ -517,6 +474,7 @@ def main(params):
     )
     thread_track.start()
 
+    # Start Recognition Thread
     thread_recognize = threading.Thread(
         target=recognition,
         args=(recognizer, face_db, attendance_tracker, last_seen, params, stop_event),
@@ -524,7 +482,12 @@ def main(params):
     )
     thread_recognize.start()
 
-    thread_track.join()
+    # Wait for threads
+    try:
+        thread_track.join()
+    except KeyboardInterrupt:
+        stop_event.set()
+    
     stop_event.set()
     thread_recognize.join(timeout=2)
 

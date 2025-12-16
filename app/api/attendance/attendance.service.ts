@@ -1,101 +1,97 @@
-import type { RecognitionResponseSchema } from "@attendance/attendance.model";
-import { InternalServerError, NotFoundError } from "@common/errors/httpErrors";
+import { NotFoundError } from "@common/errors/httpErrors";
 import { db } from "@user/sqlite";
-import type { Static } from "elysia";
-import ky from "ky";
+import {
+  ExtAttendanceService,
+  type AttendanceRecord,
+} from "./ext-attendance.service";
 
-type RecognitionResponse = Static<typeof RecognitionResponseSchema>;
+export interface AttendanceFilters {
+  classId?: number;
+  date?: string;
+}
 
+/**
+ * Service for managing attendance records
+ * Relies on the Python agent's database for attendance data
+ */
 export class AttendanceService {
-	constructor() {
-		this.initDatabase();
-	}
+  private extAttendanceService: ExtAttendanceService;
 
-	private initDatabase() {
-		db.run(`
-      CREATE TABLE IF NOT EXISTS attendance (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id TEXT NOT NULL,
-        class_id INTEGER NOT NULL,
-        timestamp TEXT NOT NULL,
-        FOREIGN KEY (user_id) REFERENCES students (id),
-        FOREIGN KEY (class_id) REFERENCES classes (id)
-      );
-    `);
-	}
+  constructor() {
+    this.extAttendanceService = new ExtAttendanceService();
+  }
 
-	public async markAttendance(
-		studentId: string,
-		classId: number,
-	): Promise<void> {
-		// First, verify the student exists
-		const studentQuery = db.query<{ id: string }, { $id: string }>(
-			"SELECT id FROM students WHERE id = $id",
-		);
-		const student = studentQuery.get({ $id: studentId });
+  /**
+   * Verify that a student exists in the main database
+   */
+  private verifyStudentExists(studentId: string): void {
+    const studentQuery = db.query<{ id: string }, { $id: string }>(
+      "SELECT id FROM students WHERE id = $id",
+    );
+    const student = studentQuery.get({ $id: studentId });
 
-		if (!student) {
-			throw new NotFoundError(`Student with ID '${studentId}' not found.`);
-		}
+    if (!student) {
+      throw new NotFoundError(`Student with ID '${studentId}' not found.`);
+    }
+  }
 
-		// Verify the class exists
-		const classQuery = db.query("SELECT id FROM classes WHERE id = $id");
-		const course = classQuery.get({ $id: classId });
-		if (!course) {
-			throw new NotFoundError(`Class with ID ${classId} not found.`);
-		}
+  /**
+   * Verify that a class exists in the main database
+   */
+  private verifyClassExists(classId: number): void {
+    const classQuery = db.query<{ id: number }, { $id: number }>(
+      "SELECT id FROM classes WHERE id = $id",
+    );
+    const course = classQuery.get({ $id: classId });
 
-		// Insert an attendance record
-		const attendanceQuery = db.query(
-			"INSERT INTO attendance (user_id, class_id, timestamp) VALUES ($userId, $classId, $timestamp)",
-		);
-		const result = attendanceQuery.run({
-			$userId: student.id,
-			$classId: classId,
-			$timestamp: new Date().toISOString(),
-		});
+    if (!course) {
+      throw new NotFoundError(`Class with ID ${classId} not found.`);
+    }
+  }
 
-		if (result.changes === 0) {
-			throw new InternalServerError("Failed to mark attendance.");
-		}
-	}
+  /**
+   * Get attendance records based on filters
+   * Requires both classId and date for the Python DB query
+   */
+  public getAttendance(filters: AttendanceFilters): AttendanceRecord[] {
+    if (filters.classId && filters.date) {
+      try {
+        return this.extAttendanceService.getAttendanceByClassAndDate(
+          filters.classId,
+          filters.date,
+        );
+      } catch (error) {
+        console.error("Failed to fetch from external DB:", error);
+        return [];
+      }
+    }
 
-	public getAttendance(
-		filters: { classId?: number; date?: string },
-		user?: any,
-	): any[] {
-		let sql = `
-            SELECT
-                a.id,
-                a.timestamp,
-                s.id as student_id,
-                s.first_name,
-                s.last_name,
-                c.name as class_name
-            FROM attendance a
-            JOIN students s ON a.user_id = s.id
-            JOIN classes c ON a.class_id = c.id
-        `;
-		const params: any = {};
-		const conditions: string[] = [];
+    // Python DB is optimized for class+date queries
+    // Return empty array if filters are insufficient
+    return [];
+  }
 
-		if (filters.classId) {
-			conditions.push("a.class_id = $classId");
-			params["$classId"] = filters.classId;
-		}
+  /**
+   * Get all attendance records for a specific student
+   */
+  public getAttendanceByStudent(studentId: string): AttendanceRecord[] {
+    return this.extAttendanceService.getAttendanceByStudent(studentId);
+  }
 
-		if (filters.date) {
-			conditions.push("date(a.timestamp) = $date");
-			params["$date"] = filters.date;
-		}
-
-		if (conditions.length > 0) {
-			sql += " WHERE " + conditions.join(" AND ");
-		}
-
-		sql += " ORDER BY a.timestamp DESC";
-
-		const query = db.query(sql);
-		return query.all(params);
-	}
+  /**
+   * Update the attendance status for a student
+   */
+  public updateAttendanceStatus(
+    studentId: string,
+    date: string,
+    session: number,
+    status: string,
+  ): { message: string } {
+    return this.extAttendanceService.updateAttendanceStatus(
+      studentId,
+      date,
+      session,
+      status,
+    );
+  }
 }

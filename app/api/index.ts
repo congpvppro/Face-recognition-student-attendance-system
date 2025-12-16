@@ -6,41 +6,42 @@ import { usersPlugin } from "@user/index";
 import { Elysia } from "elysia";
 import { classesPlugin } from "./classes";
 import { studentsPlugin } from "./students";
+import { ticketsPlugin } from "./tickets";
 
 export const app = new Elysia({ prefix: "/api" })
-	.use(errorHandler)
-	.use(
-		cors({
-			origin: "http://localhost:5173",
-			credentials: true,
-			methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-			allowedHeaders: ["Content-Type", "Authorization"],
-		}),
-	)
-	.use(
-		openapi({
-			documentation: {
-				info: {
-					title: "Attendance API Documentation",
-					version: "1.0.0",
-				},
-			},
-		}),
-	)
+  .use(errorHandler)
+  .use(
+    cors({
+      origin: "http://localhost:5173",
+      credentials: true,
+      methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+      allowedHeaders: ["Content-Type", "Authorization"],
+    }),
+  )
+  .use(
+    openapi({
+      documentation: {
+        info: {
+          title: "Attendance API Documentation",
+          version: "1.0.0",
+        },
+      },
+    }),
+  )
 
-	.use(usersPlugin)
-	.use(attendancePlugin)
-	.use(studentsPlugin)
-	.use(classesPlugin)
+  .use(usersPlugin)
+  .use(attendancePlugin)
+  .use(studentsPlugin)
+  .use(classesPlugin)
+  .use(ticketsPlugin)
+  .get("/", () => ({ status: "ok" }), {
+    detail: { summary: "Health check endpoint" },
+  })
 
-	.get("/", () => ({ status: "ok" }), {
-		detail: { summary: "Health check endpoint" },
-	})
-
-	.listen(3000);
+  .listen(3000);
 
 console.log(
-	`🦊 Elysia server is running at http://${app.server?.hostname}:${app.server?.port}`,
+  `🦊 Elysia server is running at http://${app.server?.hostname}:${app.server?.port}`,
 );
 
 export type App = typeof app;

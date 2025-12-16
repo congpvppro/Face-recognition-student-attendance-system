@@ -23,6 +23,7 @@
 		"paths": {
 			"@user/*": ["users/*"],
 			"@attendance/*": ["attendance/*"],
+			"@student/*": ["students/*"],
 			"@common/*": ["common/*"],
 			"@main/*": ["*"]
 		}

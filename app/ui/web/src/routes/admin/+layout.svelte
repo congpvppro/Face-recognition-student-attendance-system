@@ -1,13 +1,11 @@
 <script lang="ts">
-    import AdminNavigationBar from "$lib/components/AdminNavigationBar.svelte";
-    import type { LayoutProps } from "./$types";
+  import type { LayoutProps } from "./$types";
 
-    let { children }: LayoutProps = $props();
+  let { children }: LayoutProps = $props();
 </script>
 
 <div class="">
-    <AdminNavigationBar />
-    <main class="">
-        {@render children()}
-    </main>
+  <main class="">
+    {@render children()}
+  </main>
 </div>

@@ -16,3 +16,4 @@ langchain-community
 langchain-core
 langchain-groq
 openpyxl
+sendgrid
