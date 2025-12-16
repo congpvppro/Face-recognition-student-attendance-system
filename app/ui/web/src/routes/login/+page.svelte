@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Lock, Mail } from "lucide-svelte";
+  import { Lock, Mail, Shield } from "lucide-svelte";
   import { enhance } from "$app/forms";
   import { goto } from "$app/navigation";
   import { page } from "$app/state";
@@ -8,30 +8,30 @@
   let submitting = $state(false);
 </script>
 
+<svelte:head>
+  <title>Đăng nhập - Attendde</title>
+</svelte:head>
+
 <div class="grid min-h-screen w-full overflow-x-hidden lg:grid-cols-[2fr_3fr]">
   <div class="bg-base-100 flex flex-col items-center justify-center p-6 sm:p-8">
     <div class="w-full max-w-md px-6">
       <a
         href="/"
-        class="mb-8 flex items-center gap-3 self-start"
+        class="mb-8 flex items-center gap-3 self-start transition-transform hover:scale-105 active:scale-95"
         style="view-transition-name: brand-logo"
       >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="50"
-          height="50"
-          viewBox="0 0 100 100"
+        <div
+          class="bg-primary/10 text-primary flex h-11 w-11 items-center justify-center rounded-lg"
         >
-          <g fill-rule="evenodd">
-            <path fill="#282828" d="M46 12 15 88q-30-38 31-76Z" />
-            <path fill="#825F41" d="m54 12 31 76q30-38-31-76Z" />
-          </g>
-        </svg>
-        <span class="text-2xl font-bold">Attendde</span>
+          <Shield class="h-7 w-7" strokeWidth={2.5} />
+        </div>
+        <span class="font-montserrat text-2xl font-bold tracking-tight"
+          >Attendde</span
+        >
       </a>
 
-      <h1 class="font-josefin text-4xl font-bold">Welcome back</h1>
-      <p class="text-base-content/70 mt-2">Login to continue your journey.</p>
+      <h1 class="font-josefin text-4xl font-bold">Chào mừng trở lại</h1>
+      <p class="text-base-content/70 mt-2">Đăng nhập để tiếp tục.</p>
 
       <form
         class="mt-8 space-y-4"
@@ -42,7 +42,7 @@
           return async ({ result, update }) => {
             if (result.type === "success") {
               showToast({
-                message: "Logged in successfully!",
+                message: "Đăng nhập thành công!",
                 type: "success",
               });
               await goto(result.data?.redirectUrl || "/");
@@ -68,7 +68,7 @@
               name="email"
               class="input input-bordered w-full pl-10"
               required
-              placeholder="Enter your email"
+              placeholder="Nhập email của bạn"
             />
           </div>
         </div>
@@ -88,7 +88,7 @@
               name="password"
               class="input input-bordered w-full pl-10"
               required
-              placeholder="Password"
+              placeholder="Mật khẩu"
             />
           </div>
         </div>
@@ -110,16 +110,16 @@
           >
             {#if submitting}
               <span class="loading loading-spinner"></span>
-              Logging In...
+              Đang đăng nhập...
             {:else}
-              Login
+              Đăng nhập
             {/if}
           </button>
         </div>
 
-        <div class=" text-sm">
-          Don't have an account?
-          <a href="/register" class="link-primary link">Register</a>
+        <div class="text-sm">
+          Chưa có tài khoản?
+          <a href="/register" class="link-primary link">Đăng ký</a>
         </div>
       </form>
     </div>

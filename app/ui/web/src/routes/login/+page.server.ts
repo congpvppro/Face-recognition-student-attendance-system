@@ -18,11 +18,13 @@ export const actions: Actions = {
     const password = String(fd.get("password") ?? "");
 
     if (!email || !password) {
-      return fail(400, { message: "Email and password are required." });
+      return fail(400, { message: "Email và mật khẩu là bắt buộc." });
     }
 
     const payload = { email, password };
     const client = api(event);
+
+    let redirectUrl = "/";
 
     try {
       const response = await client
@@ -45,26 +47,26 @@ export const actions: Actions = {
         })
         .json<{ user: { role: string } }>();
 
-      if (user.role === "admin") throw redirect(303, "/admin/statistics");
-      if (user.role === "teacher") throw redirect(303, "/teacher/classes");
-      if (user.role === "parent") throw redirect(303, "/parent/dashboard");
+      // Determine redirect URL based on role
+      if (user.role === "admin") redirectUrl = "/admin/statistics";
+      else if (user.role === "teacher") redirectUrl = "/teacher/classes";
+      else if (user.role === "parent") redirectUrl = "/parent/dashboard";
     } catch (e) {
-      // SvelteKit redirects are thrown as errors, so we need to catch and re-throw them
-      if (e && typeof e === "object" && "status" in e && "location" in e) {
-        throw e;
-      }
       if (e instanceof HTTPError) {
         const body = await e.response.json().catch(() => null);
         return fail(e.response.status ?? 400, {
-          message: body?.message ?? "Invalid credentials or server error.",
+          message:
+            body?.message ??
+            "Thông tin đăng nhập không hợp lệ hoặc lỗi máy chủ.",
         });
       }
       console.error("An unexpected error occurred during API call:", e);
       return fail(500, {
-        message: "An unexpected error occurred. Please try again.",
+        message: "Đã xảy ra lỗi không mong muốn. Vui lòng thử lại.",
       });
     }
 
-    return { success: true, message: "Login successful!" };
+    // Return success with redirect URL - let client handle navigation
+    return { success: true, redirectUrl };
   },
 };

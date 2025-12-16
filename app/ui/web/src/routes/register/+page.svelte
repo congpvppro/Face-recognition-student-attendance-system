@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Lock, Mail, User } from "lucide-svelte";
+  import { Lock, Mail, User, Shield } from "lucide-svelte";
   import { enhance } from "$app/forms";
   import { goto } from "$app/navigation";
   import { page } from "$app/state";
@@ -28,7 +28,7 @@
   $effect(() => {
     if (confirmPasswordInput) {
       if (!passwordsMatch && confirmPassword) {
-        confirmPasswordInput.setCustomValidity("Passwords do not match.");
+        confirmPasswordInput.setCustomValidity("Mật khẩu không khớp.");
       } else {
         confirmPasswordInput.setCustomValidity("");
       }
@@ -64,30 +64,32 @@
   }
 </script>
 
+<svelte:head>
+  <title>Đăng ký - Attendde</title>
+</svelte:head>
+
 <div class="grid min-h-screen w-full overflow-x-hidden lg:grid-cols-[2fr_3fr]">
   <div class="bg-base-100 flex flex-col items-center justify-center p-6 sm:p-8">
     <div class="w-full max-w-md px-6">
       <a
         href="/"
-        class="mb-8 flex items-center gap-3 self-start"
+        class="mb-8 flex items-center gap-3 self-start transition-transform hover:scale-105 active:scale-95"
         style="view-transition-name: brand-logo"
       >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="50"
-          height="50"
-          viewBox="0 0 100 100"
+        <div
+          class="bg-primary/10 text-primary flex h-11 w-11 items-center justify-center rounded-lg"
         >
-          <g fill-rule="evenodd">
-            <path fill="#282828" d="M46 12 15 88q-30-38 31-76Z" />
-            <path fill="#825F41" d="m54 12 31 76q30-38-31-76Z" />
-          </g>
-        </svg>
-        <span class="text-2xl font-bold">Attendde</span>
+          <Shield class="h-7 w-7" strokeWidth={2.5} />
+        </div>
+        <span class="font-montserrat text-2xl font-bold tracking-tight"
+          >Attendde</span
+        >
       </a>
 
-      <h1 class="font-josefin text-4xl font-bold">Create an account</h1>
-      <p class="text-base-content/70 mt-2">Your journey begins here.</p>
+      <h1 class="font-josefin text-4xl font-bold">Tạo tài khoản</h1>
+      <p class="text-base-content/70 mt-2">
+        Hành trình của bạn bắt đầu từ đây.
+      </p>
 
       <form
         class="mt-8 space-y-4"
@@ -109,7 +111,7 @@
             submitting = false;
             if (result.type === "success" && result.data?.success) {
               showToast({
-                message: "Account created successfully.",
+                message: "Tạo tài khoản thành công.",
                 type: "success",
               });
               goto("/login");
@@ -129,12 +131,12 @@
               name="firstName"
               class="input input-bordered validator"
               required
-              placeholder="First name"
+              placeholder="Họ"
               pattern={namePattern}
               minlength="1"
               maxlength="50"
-              title="Only letters, spaces, hyphens (-), or apostrophes (')."
-              data-hint="First name must be 1 to 50 characters, containing only letters, spaces, hyphens, or apostrophes."
+              title="Chỉ chứa chữ cái, khoảng trắng, dấu gạch ngang (-), hoặc dấu nháy đơn (')."
+              data-hint="Họ phải từ 1 đến 50 ký tự, chỉ chứa chữ cái, khoảng trắng, dấu gạch ngang, hoặc dấu nháy đơn."
               bind:this={fnameInput}
               onblur={handleBlur}
             />
@@ -146,12 +148,12 @@
               name="lastName"
               class="input input-bordered validator"
               required
-              placeholder="Last name"
+              placeholder="Tên"
               pattern={namePattern}
               minlength="1"
               maxlength="50"
-              title="Only letters, spaces, hyphens (-), or apostrophes (')."
-              data-hint="Last name must be 1 to 50 characters, containing only letters, spaces, hyphens, or apostrophes."
+              title="Chỉ chứa chữ cái, khoảng trắng, dấu gạch ngang (-), hoặc dấu nháy đơn (')."
+              data-hint="Tên phải từ 1 đến 50 ký tự, chỉ chứa chữ cái, khoảng trắng, dấu gạch ngang, hoặc dấu nháy đơn."
               bind:this={lnameInput}
               onblur={handleBlur}
             />
@@ -169,12 +171,12 @@
               name="username"
               class="input input-bordered validator w-full pl-10"
               required
-              placeholder="Username"
+              placeholder="Tên đăng nhập"
               pattern="[A-Za-z0-9][A-Za-z0-9\-]*"
               minlength="5"
               maxlength="30"
-              title="Only letters, numbers or dash"
-              data-hint="Username must be 5 to 30 characters, containing only letters, numbers or a dash."
+              title="Chỉ chứa chữ cái, số hoặc dấu gạch ngang"
+              data-hint="Tên đăng nhập phải từ 5 đến 30 ký tự, chỉ chứa chữ cái, số hoặc dấu gạch ngang."
               bind:this={usernameInput}
               onblur={handleBlur}
             />
@@ -196,8 +198,8 @@
               name="email"
               class="input input-bordered validator w-full pl-10"
               required
-              placeholder="Enter your email"
-              data-hint="Must be a valid email address."
+              placeholder="Nhập email của bạn"
+              data-hint="Phải là địa chỉ email hợp lệ."
               bind:this={emailInput}
               onblur={handleBlur}
             />
@@ -219,9 +221,9 @@
               name="password"
               class="input input-bordered validator w-full pl-10"
               required
-              placeholder="Password"
+              placeholder="Mật khẩu"
               pattern={passwordPattern}
-              data-hint="Password must be at least 6 characters."
+              data-hint="Mật khẩu phải có ít nhất 6 ký tự."
               bind:value={password}
               bind:this={passwordInput}
               onblur={handleBlur}
@@ -240,8 +242,8 @@
               name="confirmPassword"
               class="input input-bordered validator w-full pl-10"
               required
-              placeholder="Confirm password"
-              data-hint="Passwords do not match."
+              placeholder="Xác nhận mật khẩu"
+              data-hint="Mật khẩu không khớp."
               bind:value={confirmPassword}
               bind:this={confirmPasswordInput}
               onblur={handleBlur}
@@ -277,16 +279,16 @@
           >
             {#if submitting}
               <span class="loading loading-spinner"></span>
-              Signing Up...
+              Đang đăng ký...
             {:else}
-              Sign Up
+              Đăng ký
             {/if}
           </button>
         </div>
       </form>
       <div class="mt-4 text-sm">
-        Already have an account?
-        <a href="/login" class="link-primary link">Login</a>
+        Đã có tài khoản?
+        <a href="/login" class="link-primary link">Đăng nhập</a>
       </div>
     </div>
   </div>

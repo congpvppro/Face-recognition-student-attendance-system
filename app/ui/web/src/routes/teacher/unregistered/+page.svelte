@@ -87,9 +87,9 @@
 <div class="container mx-auto p-8">
   <div class="mb-6 flex items-center justify-between">
     <div>
-      <h1 class="text-2xl font-bold">Unregistered Faces</h1>
+      <h1 class="text-2xl font-bold">Khuôn mặt chưa đăng ký</h1>
       <p class="mt-1 text-sm opacity-70">
-        Assign faces to students or create new profiles.
+        Gán khuôn mặt cho học sinh hoặc tạo hồ sơ mới.
       </p>
     </div>
     {#if data.unregisteredFaces.length > 0}
@@ -114,7 +114,7 @@
           d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
         />
       </svg>
-      <span>No unregistered faces found. All faces have been processed!</span>
+      <span>Không có khuôn mặt chưa đăng ký. Tất cả đã được xử lý!</span>
     </div>
   {:else}
     <div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -163,7 +163,7 @@
               use:enhance={createEnhance(
                 face.face_id,
                 "ignore",
-                "Face ignored",
+                "Đã bỏ qua khuôn mặt",
               )}
               class="absolute right-2 top-2"
             >
@@ -171,7 +171,7 @@
               <button
                 type="submit"
                 class="btn btn-circle btn-ghost btn-sm bg-base-100/70 hover:bg-error hover:text-error-content backdrop-blur-sm transition-colors"
-                aria-label="Ignore this face"
+                aria-label="Bỏ qua khuôn mặt này"
                 disabled={loading("ignore")}
               >
                 {#if loading("ignore")}
@@ -206,7 +206,7 @@
                 onclick={() => activeTabs.set(face.face_id, "assign")}
                 disabled={loading("assign") || loading("create")}
               >
-                Assign
+                Gán
               </button>
               <button
                 type="button"
@@ -216,7 +216,7 @@
                 onclick={() => activeTabs.set(face.face_id, "create")}
                 disabled={loading("assign") || loading("create")}
               >
-                Create
+                Tạo mới
               </button>
             </div>
 
@@ -240,10 +240,10 @@
                     </svg>
                     <div>
                       <p class="text-sm font-medium">
-                        No students in this class
+                        Không có học sinh trong lớp này
                       </p>
                       <p class="text-xs opacity-80">
-                        Switch to "Create" tab to add a new student
+                        Chuyển sang tab "Tạo mới" để thêm học sinh
                       </p>
                     </div>
                   </div>
@@ -254,13 +254,13 @@
                     use:enhance={createEnhance(
                       face.face_id,
                       "assign",
-                      "Student assigned!",
+                      "Đã gán học sinh!",
                     )}
                   >
                     <input type="hidden" name="faceId" value={face.face_id} />
 
                     <label for="student-{face.face_id}" class="label">
-                      <span class="label-text font-medium">Select Student</span>
+                      <span class="label-text font-medium">Chọn học sinh</span>
                     </label>
                     <select
                       name="studentId"
@@ -269,7 +269,7 @@
                       required
                       disabled={loading("assign")}
                     >
-                      <option value="">-- Select --</option>
+                      <option value="">-- Chọn --</option>
                       {#each students as student}
                         <option value={student.id}>
                           {student.first_name}
@@ -285,7 +285,7 @@
                     >
                       {#if loading("assign")}
                         <span class="loading loading-spinner loading-sm"></span>
-                        Assigning...
+                        Đang gán...
                       {:else}
                         <svg
                           class="h-4 w-4"
@@ -300,7 +300,7 @@
                             d="M5 13l4 4L19 7"
                           />
                         </svg>
-                        Assign
+                        Gán
                       {/if}
                     </button>
                   </form>
@@ -313,14 +313,14 @@
                   use:enhance={createEnhance(
                     face.face_id,
                     "create",
-                    "Student created!",
+                    "Đã tạo học sinh!",
                   )}
                   class="space-y-3"
                 >
                   <input type="hidden" name="faceId" value={face.face_id} />
                   <div>
                     <label for="class-{face.face_id}" class="label">
-                      <span class="label-text font-medium">Class</span>
+                      <span class="label-text font-medium">Lớp</span>
                     </label>
                     <select
                       name="classId"
@@ -343,14 +343,14 @@
 
                   <div>
                     <label for="sid-{face.face_id}" class="label">
-                      <span class="label-text font-medium">Student ID</span>
+                      <span class="label-text font-medium">Mã học sinh</span>
                     </label>
                     <input
                       type="text"
                       name="studentId"
                       id="sid-{face.face_id}"
                       class="input input-bordered w-full"
-                      placeholder="e.g., S12345"
+                      placeholder="VD: HS12345"
                       required
                       disabled={loading("create")}
                     />
@@ -358,7 +358,7 @@
 
                   <div>
                     <label for="fname-{face.face_id}" class="label">
-                      <span class="label-text font-medium">First Name</span>
+                      <span class="label-text font-medium">Họ</span>
                     </label>
                     <input
                       type="text"
@@ -372,7 +372,7 @@
 
                   <div>
                     <label for="lname-{face.face_id}" class="label">
-                      <span class="label-text font-medium">Last Name</span>
+                      <span class="label-text font-medium">Tên</span>
                     </label>
                     <input
                       type="text"
@@ -391,7 +391,7 @@
                   >
                     {#if loading("create")}
                       <span class="loading loading-spinner loading-sm"></span>
-                      Creating...
+                      Đang tạo...
                     {:else}
                       <svg
                         class="h-4 w-4"
@@ -406,7 +406,7 @@
                           d="M12 4v16m8-8H4"
                         />
                       </svg>
-                      Create & Assign
+                      Tạo & Gán
                     {/if}
                   </button>
                 </form>

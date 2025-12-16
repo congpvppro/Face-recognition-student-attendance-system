@@ -1,22 +1,22 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import { toastStore } from '$lib/toastStore';
+  import { onMount } from "svelte";
+  import { toastStore } from "$lib/toastStore";
 
-	let mounted = false;
+  let mounted = false;
 
-	onMount(() => {
-		mounted = true;
-	});
+  onMount(() => {
+    mounted = true;
+  });
 </script>
 
 {#if mounted && $toastStore}
-	<div class="toast toast-center toast-top z-50 p-3">
-		<div
-			class="alert text-base"
-			class:alert-success={$toastStore.type === 'success'}
-			class:alert-error={$toastStore.type === 'error'}
-		>
-			<span>{$toastStore.message}</span>
-		</div>
-	</div>
+  <div class="toast toast-center toast-top z-99999 p-3">
+    <div
+      class="alert text-base"
+      class:alert-success={$toastStore.type === "success"}
+      class:alert-error={$toastStore.type === "error"}
+    >
+      <span>{$toastStore.message}</span>
+    </div>
+  </div>
 {/if}

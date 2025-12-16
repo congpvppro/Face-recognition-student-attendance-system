@@ -5,7 +5,7 @@
 </script>
 
 <svelte:head>
-  <title>Your Profile - Attendde</title>
+  <title>Hồ sơ cá nhân - Attendde</title>
 </svelte:head>
 
 <div class="min-h-screen bg-base-200 py-10 px-4">
@@ -55,7 +55,7 @@
             </div>
             <div>
               <p class="text-xs text-base-content/60 font-medium uppercase">
-                Email Address
+                Địa chỉ Email
               </p>
               <p class="font-medium">{data.user.email}</p>
             </div>
@@ -67,9 +67,9 @@
             </div>
             <div>
               <p class="text-xs text-base-content/60 font-medium uppercase">
-                Date of Birth
+                Ngày sinh
               </p>
-              <p class="font-medium">{data.user.dob || "Not provided"}</p>
+              <p class="font-medium">{data.user.dob || "Chưa cung cấp"}</p>
             </div>
           </div>
         </div>
@@ -82,7 +82,7 @@
         <div class="p-2 bg-secondary/10 text-secondary rounded-lg">
           <School size={24} />
         </div>
-        <h2 class="text-2xl font-bold">Your Children</h2>
+        <h2 class="text-2xl font-bold">Con em của bạn</h2>
       </div>
 
       {#if data.students.length > 0}
@@ -115,7 +115,7 @@
                   </div>
                   <div class="badge badge-success gap-1">
                     <UserCheck size={12} />
-                    Active
+                    Đang học
                   </div>
                 </div>
 
@@ -123,18 +123,18 @@
 
                 <div class="grid grid-cols-2 gap-2 text-sm">
                   <div class="flex flex-col">
-                    <span class="text-base-content/50 text-xs">Class</span>
+                    <span class="text-base-content/50 text-xs">Lớp</span>
                     <span class="font-medium">{student.class_id || "N/A"}</span>
                   </div>
                   <div class="flex flex-col">
-                    <span class="text-base-content/50 text-xs">DOB</span>
+                    <span class="text-base-content/50 text-xs">Ngày sinh</span>
                     <span class="font-medium">{student.dob || "N/A"}</span>
                   </div>
                 </div>
 
                 <div class="card-actions justify-end mt-4">
                   <button class="btn btn-sm btn-outline btn-secondary"
-                    >View Attendance</button
+                    >Xem điểm danh</button
                   >
                 </div>
               </div>
@@ -145,10 +145,10 @@
         <div class="alert shadow-lg">
           <School size={24} class="text-info" />
           <div>
-            <h3 class="font-bold">No students linked yet!</h3>
+            <h3 class="font-bold">Chưa liên kết học sinh nào!</h3>
             <div class="text-xs">
-              Please contact the school administrator to link your account with
-              your children.
+              Vui lòng liên hệ quản trị viên nhà trường để liên kết tài khoản
+              với con em của bạn.
             </div>
           </div>
         </div>

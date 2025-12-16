@@ -2,6 +2,19 @@
   import { SvelteMap } from "svelte/reactivity";
   import { enhance } from "$app/forms";
   import { showToast } from "$lib/toastStore";
+  import {
+    Users,
+    UserPlus,
+    Search,
+    X,
+    Pencil,
+    Link2,
+    Mail,
+    User,
+    Lock,
+    School,
+    GraduationCap,
+  } from "lucide-svelte";
 
   type Parent = {
     id: number;
@@ -36,6 +49,10 @@
   let editDialog: HTMLDialogElement;
   let linkDialog: HTMLDialogElement;
 
+  // Search and filter state
+  let searchQuery = $state("");
+  let showAddForm = $state(false);
+
   // Linking Logic State
   let selectedClassId = $state<number | null>(null);
   let selectedStudentId = $state<string | null>(null);
@@ -44,6 +61,20 @@
     if (!selectedClassId) return [];
     const selectedClass = data.classes.find((c) => c.id === selectedClassId);
     return selectedClass ? selectedClass.students : [];
+  });
+
+  // Filtered parents based on search
+  let filteredParents = $derived.by(() => {
+    if (!searchQuery.trim()) return data.parents;
+    const query = searchQuery.toLowerCase().trim();
+    return data.parents.filter(
+      (p) =>
+        p.first_name.toLowerCase().includes(query) ||
+        p.last_name.toLowerCase().includes(query) ||
+        p.email.toLowerCase().includes(query) ||
+        p.username.toLowerCase().includes(query) ||
+        `${p.first_name} ${p.last_name}`.toLowerCase().includes(query),
+    );
   });
 
   function isLoading(action: string): boolean {
@@ -68,6 +99,7 @@
           // Reset local state
           selectedClassId = null;
           selectedStudentId = null;
+          if (action === "create") showAddForm = false;
         } else if (result.type === "failure") {
           showToast({
             message: result.data?.message || "Action failed.",
@@ -93,88 +125,131 @@
   function getLinkedStudents(parentId: number) {
     return data.links.filter((l) => l.parent_id === parentId);
   }
+
+  // Get initials for avatar
+  function getInitials(firstName: string, lastName: string): string {
+    return `${firstName[0] || ""}${lastName[0] || ""}`.toUpperCase();
+  }
+
+  // Get total linked students
+  let totalLinkedStudents = $derived(data.links.length);
 </script>
 
-<div class="container mx-auto p-8 max-w-7xl">
-  <!-- Header -->
-  <div class="mb-8">
-    <h1 class="text-3xl font-bold flex items-center gap-3">
-      <div class="rounded-lg bg-green-600 p-2">
-        <svg
-          class="h-8 w-8 text-white"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-          />
-        </svg>
-      </div>
-      Manage Parents
-    </h1>
-    <p class="text-base-content/70 mt-2">
-      Create and manage parent accounts and link them to students.
-    </p>
-  </div>
+<svelte:head>
+  <title>Quản lý phụ huynh - Attendde</title>
+</svelte:head>
 
-  <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-    <!-- Create Parent Form -->
-    <div class="lg:col-span-1">
-      <div class="card bg-base-100 shadow-xl border border-base-300">
+<div class="min-h-screen bg-base-200/50">
+  <div class="container mx-auto p-4 md:p-8 max-w-7xl">
+    <!-- Header -->
+    <div
+      class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8"
+    >
+      <div>
+        <h1 class="text-3xl font-bold flex items-center gap-3">
+          <div class="rounded-xl bg-primary p-2.5 shadow-lg">
+            <Users class="h-7 w-7 text-primary-content" />
+          </div>
+          Quản lý phụ huynh
+        </h1>
+        <p class="text-base-content/60 mt-2">
+          Tạo tài khoản phụ huynh và liên kết với học sinh
+        </p>
+      </div>
+      <button
+        class="btn btn-primary gap-2 shadow-lg"
+        onclick={() => (showAddForm = !showAddForm)}
+      >
+        {#if showAddForm}
+          <X class="h-5 w-5" />
+          Đóng
+        {:else}
+          <UserPlus class="h-5 w-5" />
+          Thêm phụ huynh
+        {/if}
+      </button>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+      <div class="card bg-base-100 shadow-md hover:shadow-lg transition-shadow">
+        <div class="card-body p-5">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-sm text-base-content/60 font-medium">
+                Tổng phụ huynh
+              </p>
+              <p class="text-3xl font-bold text-primary mt-1">
+                {data.parents.length}
+              </p>
+            </div>
+            <div class="rounded-xl bg-primary/10 p-3">
+              <Users class="h-6 w-6 text-primary" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card bg-base-100 shadow-md hover:shadow-lg transition-shadow">
+        <div class="card-body p-5">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-sm text-base-content/60 font-medium">
+                Học sinh liên kết
+              </p>
+              <p class="text-3xl font-bold text-secondary mt-1">
+                {totalLinkedStudents}
+              </p>
+            </div>
+            <div class="rounded-xl bg-secondary/10 p-3">
+              <Link2 class="h-6 w-6 text-secondary" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card bg-base-100 shadow-md hover:shadow-lg transition-shadow">
+        <div class="card-body p-5">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-sm text-base-content/60 font-medium">
+                Kết quả tìm kiếm
+              </p>
+              <p class="text-3xl font-bold text-accent mt-1">
+                {filteredParents.length}
+              </p>
+            </div>
+            <div class="rounded-xl bg-accent/10 p-3">
+              <Search class="h-6 w-6 text-accent" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Collapsible Add Parent Form -->
+    {#if showAddForm}
+      <div class="card bg-base-100 shadow-lg mb-8 border border-primary/20">
         <div class="card-body">
-          <h2 class="card-title text-xl">
-            <svg
-              class="h-5 w-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"
-              />
-            </svg>
-            Create New Parent
+          <h2 class="card-title text-xl mb-4">
+            <UserPlus class="h-5 w-5 text-primary" />
+            Thêm phụ huynh mới
           </h2>
-          <div class="divider my-2"></div>
 
           <form
             method="POST"
             action="?/createParent"
-            class="space-y-4"
-            use:enhance={createEnhance(
-              "create",
-              "Parent created successfully!",
-            )}
+            class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+            use:enhance={createEnhance("create", "Tạo phụ huynh thành công!")}
           >
             <div class="form-control">
               <label for="email" class="label">
-                <span class="label-text font-medium">Email Address</span>
+                <span class="label-text font-medium">Email</span>
               </label>
               <div class="relative">
-                <span
-                  class="absolute inset-y-0 left-0 flex items-center pl-3 text-base-content/40"
-                >
-                  <svg
-                    class="h-5 w-5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-                    />
-                  </svg>
-                </span>
+                <Mail
+                  class="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-base-content/40 z-10"
+                />
                 <input
                   type="email"
                   id="email"
@@ -190,32 +265,18 @@
 
             <div class="form-control">
               <label for="username" class="label">
-                <span class="label-text font-medium">Username</span>
+                <span class="label-text font-medium">Tên đăng nhập</span>
               </label>
               <div class="relative">
-                <span
-                  class="absolute inset-y-0 left-0 flex items-center pl-3 text-base-content/40"
-                >
-                  <svg
-                    class="h-5 w-5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                    />
-                  </svg>
-                </span>
+                <User
+                  class="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-base-content/40 z-10"
+                />
                 <input
                   type="text"
                   id="username"
                   name="username"
                   class="input input-bordered w-full pl-10"
-                  placeholder="username"
+                  placeholder="tendangnhap"
                   autocomplete="username"
                   required
                   disabled={isLoading("create")}
@@ -225,282 +286,253 @@
 
             <div class="form-control">
               <label for="password" class="label">
-                <span class="label-text font-medium">Password</span>
+                <span class="label-text font-medium">Mật khẩu</span>
               </label>
               <div class="relative">
-                <span
-                  class="absolute inset-y-0 left-0 flex items-center pl-3 text-base-content/40"
-                >
-                  <svg
-                    class="h-5 w-5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                    />
-                  </svg>
-                </span>
+                <Lock
+                  class="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-base-content/40 z-10"
+                />
                 <input
                   type="password"
                   id="password"
                   name="password"
                   class="input input-bordered w-full pl-10"
-                  placeholder="••••••••"
+                  placeholder="Tối thiểu 8 ký tự"
                   autocomplete="new-password"
                   minlength="8"
                   required
                   disabled={isLoading("create")}
                 />
               </div>
-              <div class="mt-1 text-xs text-base-content/60 pl-1">
-                Minimum 8 characters required
-              </div>
             </div>
 
-            <div class="divider my-2 text-xs">Personal Information</div>
-
-            <div class="grid grid-cols-2 gap-3">
-              <div class="form-control">
-                <label for="first_name" class="label">
-                  <span class="label-text font-medium">First Name</span>
-                </label>
-                <input
-                  type="text"
-                  id="first_name"
-                  name="first_name"
-                  class="input input-bordered"
-                  autocomplete="given-name"
-                  required
-                  disabled={isLoading("create")}
-                />
-              </div>
-
-              <div class="form-control">
-                <label for="last_name" class="label">
-                  <span class="label-text font-medium">Last Name</span>
-                </label>
-                <input
-                  type="text"
-                  id="last_name"
-                  name="last_name"
-                  class="input input-bordered"
-                  autocomplete="family-name"
-                  required
-                  disabled={isLoading("create")}
-                />
-              </div>
+            <div class="form-control">
+              <label for="first_name" class="label">
+                <span class="label-text font-medium">Họ</span>
+              </label>
+              <input
+                type="text"
+                id="first_name"
+                name="first_name"
+                class="input input-bordered"
+                placeholder="Nguyễn Văn"
+                autocomplete="given-name"
+                required
+                disabled={isLoading("create")}
+              />
             </div>
 
-            <button
-              type="submit"
-              class="btn btn-primary w-full mt-6"
-              disabled={isLoading("create")}
-            >
-              {#if isLoading("create")}
-                <span class="loading loading-spinner loading-sm"></span>
-                Creating Parent...
-              {:else}
-                <svg
-                  class="h-5 w-5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M12 4v16m8-8H4"
-                  />
-                </svg>
-                Create Parent
-              {/if}
-            </button>
+            <div class="form-control">
+              <label for="last_name" class="label">
+                <span class="label-text font-medium">Tên</span>
+              </label>
+              <input
+                type="text"
+                id="last_name"
+                name="last_name"
+                class="input input-bordered"
+                placeholder="An"
+                autocomplete="family-name"
+                required
+                disabled={isLoading("create")}
+              />
+            </div>
+
+            <div class="flex items-end gap-2">
+              <button
+                type="button"
+                class="btn btn-ghost"
+                onclick={() => (showAddForm = false)}
+              >
+                Hủy
+              </button>
+              <button
+                type="submit"
+                class="btn btn-primary flex-1 gap-2"
+                disabled={isLoading("create")}
+              >
+                {#if isLoading("create")}
+                  <span class="loading loading-spinner loading-sm"></span>
+                  Đang tạo...
+                {:else}
+                  <UserPlus class="h-4 w-4" />
+                  Tạo phụ huynh
+                {/if}
+              </button>
+            </div>
           </form>
+        </div>
+      </div>
+    {/if}
+
+    <!-- Search Bar -->
+    <div class="card bg-base-100 shadow-md mb-6">
+      <div class="card-body p-4">
+        <div class="relative">
+          <Search
+            class="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-base-content/40 z-10"
+          />
+          <input
+            type="text"
+            placeholder="Tìm kiếm theo tên, email, tên đăng nhập..."
+            class="input input-bordered w-full pl-10 pr-10"
+            bind:value={searchQuery}
+          />
+          {#if searchQuery}
+            <button
+              class="absolute right-3 top-1/2 -translate-y-1/2 btn btn-ghost btn-xs btn-circle"
+              onclick={() => (searchQuery = "")}
+            >
+              <X class="h-4 w-4" />
+            </button>
+          {/if}
         </div>
       </div>
     </div>
 
     <!-- Parent List -->
-    <div class="lg:col-span-2">
-      <div class="card bg-base-100 shadow-xl border border-base-300">
-        <div class="card-body">
-          <div class="flex items-center justify-between mb-4">
-            <h2 class="card-title text-xl">
-              <svg
-                class="h-5 w-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                />
-              </svg>
-              Existing Parents
-            </h2>
-            <div class="badge badge-primary badge-lg gap-2">
-              <svg
-                class="h-4 w-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                />
-              </svg>
-              {data.parents.length}
+    <div class="card bg-base-100 shadow-lg">
+      <div class="card-body p-0">
+        {#if data.parents.length === 0}
+          <!-- Empty State -->
+          <div class="flex flex-col items-center justify-center py-16 px-4">
+            <div class="rounded-full bg-base-200 p-6 mb-4">
+              <Users class="h-12 w-12 text-base-content/30" />
             </div>
+            <h3 class="text-xl font-bold text-base-content/70 mb-2">
+              Chưa có phụ huynh nào
+            </h3>
+            <p class="text-base-content/50 text-center max-w-md mb-6">
+              Bắt đầu thêm tài khoản phụ huynh bằng cách nhấn nút "Thêm phụ
+              huynh" ở trên.
+            </p>
+            <button
+              class="btn btn-primary gap-2"
+              onclick={() => (showAddForm = true)}
+            >
+              <UserPlus class="h-5 w-5" />
+              Thêm phụ huynh đầu tiên
+            </button>
           </div>
-
-          <div class="divider my-2"></div>
-
-          {#if data.parents.length === 0}
-            <div class="alert">
-              <svg
-                class="h-6 w-6 shrink-0"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-              <div>
-                <p class="font-medium">No parents found</p>
-                <p class="text-sm opacity-80">
-                  Create your first parent account using the form.
-                </p>
-              </div>
+        {:else if filteredParents.length === 0}
+          <!-- No search results -->
+          <div class="flex flex-col items-center justify-center py-16 px-4">
+            <div class="rounded-full bg-warning/10 p-6 mb-4">
+              <Search class="h-12 w-12 text-warning" />
             </div>
-          {:else}
-            <div class="overflow-x-auto">
-              <table class="table table-zebra">
-                <thead>
-                  <tr class="border-b-2 border-base-300">
-                    <th class="bg-base-200 w-16">ID</th>
-                    <th class="bg-base-200">Parent Info</th>
-                    <th class="bg-base-200">Linked Students</th>
-                    <th class="bg-base-200 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {#each data.parents as parent (parent.id)}
-                    <tr class="hover:bg-base-200/50 transition-colors">
-                      <td class="align-top">
-                        <span class="badge badge-ghost badge-sm font-mono">
-                          {parent.id}
-                        </span>
-                      </td>
-                      <td class="align-top">
+            <h3 class="text-xl font-bold text-base-content/70 mb-2">
+              Không tìm thấy kết quả
+            </h3>
+            <p class="text-base-content/50 text-center max-w-md mb-6">
+              Không có phụ huynh nào khớp với từ khóa tìm kiếm của bạn.
+            </p>
+            <button
+              class="btn btn-outline gap-2"
+              onclick={() => (searchQuery = "")}
+            >
+              <X class="h-4 w-4" />
+              Xóa tìm kiếm
+            </button>
+          </div>
+        {:else}
+          <!-- Parent Table -->
+          <div class="overflow-x-auto">
+            <table class="table">
+              <thead>
+                <tr class="bg-base-200/50">
+                  <th class="font-semibold">Phụ huynh</th>
+                  <th class="font-semibold">Thông tin liên hệ</th>
+                  <th class="font-semibold">Học sinh liên kết</th>
+                  <th class="font-semibold text-right">Thao tác</th>
+                </tr>
+              </thead>
+              <tbody>
+                {#each filteredParents as parent (parent.id)}
+                  <tr class="hover:bg-base-200/30 transition-colors">
+                    <td>
+                      <div class="flex items-center gap-3">
+                        <div class="avatar placeholder">
+                          <div
+                            class="w-10 h-10 rounded-full bg-primary text-primary-content flex items-center justify-center"
+                          >
+                            <span class="text-sm font-bold">
+                              {getInitials(parent.first_name, parent.last_name)}
+                            </span>
+                          </div>
+                        </div>
                         <div>
-                          <div class="font-medium text-base">
+                          <div class="font-semibold">
                             {parent.first_name}
                             {parent.last_name}
                           </div>
-                          <div
-                            class="text-xs text-base-content/60 flex flex-col gap-0.5 mt-1"
-                          >
-                            <span class="flex items-center gap-1">
-                              @{parent.username}
-                            </span>
-                            <span class="flex items-center gap-1">
-                              {parent.email}
-                            </span>
+                          <div class="text-xs text-base-content/50">
+                            @{parent.username}
                           </div>
                         </div>
-                      </td>
-                      <td class="align-top">
-                        <div class="flex flex-wrap gap-2">
-                          {#each getLinkedStudents(parent.id) as link}
-                            <div class="badge badge-outline gap-1 py-3 px-2">
-                              <div class="avatar placeholder">
-                                <div
-                                  class="bg-neutral-focus text-neutral-content rounded-full w-4"
-                                >
-                                  <span class="text-[8px]"
-                                    >{link.first_name[0]}</span
-                                  >
-                                </div>
-                              </div>
-                              <span class="font-medium"
-                                >{link.first_name} {link.last_name}</span
+                      </div>
+                    </td>
+                    <td>
+                      <div class="flex items-center gap-2 text-sm">
+                        <Mail class="h-4 w-4 text-base-content/40 z-10" />
+                        <span class="text-base-content/70">{parent.email}</span>
+                      </div>
+                    </td>
+                    <td>
+                      <div class="flex flex-wrap items-center gap-2">
+                        {#each getLinkedStudents(parent.id) as link}
+                          <div class="badge badge-outline gap-1.5 py-2.5 px-3">
+                            <div class="avatar placeholder">
+                              <div
+                                class="w-4 h-4 rounded-full bg-secondary text-secondary-content flex items-center justify-center"
                               >
-                              {#if link.class_id}
-                                <span class="text-[10px] opacity-60 ml-1"
-                                  >(Class {link.class_id})</span
+                                <span class="text-[8px]"
+                                  >{link.first_name[0]}</span
                                 >
-                              {/if}
+                              </div>
                             </div>
-                          {/each}
-                          <button
-                            class="btn btn-xs btn-ghost btn-circle border border-dashed border-base-content/30"
-                            onclick={() => openLinkModal(parent)}
-                            title="Add Student"
-                          >
-                            <svg
-                              class="h-3 w-3"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                            >
-                              <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                stroke-width="2"
-                                d="M12 4v16m8-8H4"
-                              />
-                            </svg>
-                          </button>
-                        </div>
-                      </td>
-                      <td class="align-top">
-                        <div class="flex justify-end gap-2">
-                          <button
-                            class="btn btn-sm btn-ghost hover:btn-primary"
-                            onclick={() => openEditModal(parent)}
-                            aria-label="Edit {parent.first_name} {parent.last_name}"
-                          >
-                            <svg
-                              class="h-4 w-4"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                            >
-                              <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                stroke-width="2"
-                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                              />
-                            </svg>
-                            Edit
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  {/each}
-                </tbody>
-              </table>
-            </div>
-          {/if}
-        </div>
+                            <span class="font-medium text-xs">
+                              {link.first_name}
+                              {link.last_name}
+                            </span>
+                          </div>
+                        {/each}
+                        <button
+                          class="btn btn-xs btn-ghost btn-circle border border-dashed border-base-content/30 tooltip"
+                          data-tip="Liên kết học sinh"
+                          onclick={() => openLinkModal(parent)}
+                        >
+                          <Link2 class="h-3 w-3" />
+                        </button>
+                      </div>
+                    </td>
+                    <td>
+                      <div class="flex justify-end gap-1">
+                        <button
+                          class="btn btn-sm btn-ghost hover:bg-primary/10 hover:text-primary tooltip"
+                          data-tip="Chỉnh sửa"
+                          onclick={() => openEditModal(parent)}
+                        >
+                          <Pencil class="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                {/each}
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Table Footer -->
+          <div class="px-6 py-4 border-t border-base-200 bg-base-200/30">
+            <p class="text-sm text-base-content/60">
+              Hiển thị <span class="font-semibold"
+                >{filteredParents.length}</span
+              >
+              trong tổng số
+              <span class="font-semibold">{data.parents.length}</span> phụ huynh
+            </p>
+          </div>
+        {/if}
       </div>
     </div>
   </div>
@@ -512,7 +544,7 @@
     <h3 class="font-bold text-xl mb-1 flex items-center gap-2">
       <div class="rounded-lg bg-primary/10 p-2">
         <svg
-          class="h-5 w-5 text-primary"
+          class="h-5 w-5 text-primary z-10"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -525,10 +557,10 @@
           />
         </svg>
       </div>
-      Edit Parent
+      Sửa thông tin phụ huynh
     </h3>
     <p class="text-sm text-base-content/60 mb-4">
-      Update parent account information
+      Cập nhật thông tin tài khoản phụ huynh
     </p>
 
     {#if editingParent}
@@ -536,24 +568,22 @@
         class="space-y-4"
         method="POST"
         action="?/updateParent"
-        use:enhance={createEnhance(
-          "update",
-          "Parent updated successfully!",
-          () => editDialog?.close(),
+        use:enhance={createEnhance("update", "Cập nhật thành công!", () =>
+          editDialog?.close(),
         )}
       >
         <input type="hidden" name="id" value={editingParent.id} />
 
         <div class="form-control">
           <label for="edit_email" class="label">
-            <span class="label-text font-medium">Email Address</span>
+            <span class="label-text font-medium">Địa chỉ Email</span>
           </label>
           <div class="relative">
             <span
-              class="absolute inset-y-0 left-0 flex items-center pl-3 text-base-content/40"
+              class="absolute inset-y-0 left-0 flex items-center pl-3 text-base-content/40 z-10"
             >
               <svg
-                class="h-5 w-5"
+                class="h-5 w-5 z-10"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -581,14 +611,14 @@
 
         <div class="form-control">
           <label for="edit_username" class="label">
-            <span class="label-text font-medium">Username</span>
+            <span class="label-text font-medium">Tên đăng nhập</span>
           </label>
           <div class="relative">
             <span
-              class="absolute inset-y-0 left-0 flex items-center pl-3 text-base-content/40"
+              class="absolute inset-y-0 left-0 flex items-center pl-3 text-base-content/40 z-10"
             >
               <svg
-                class="h-5 w-5"
+                class="h-5 w-5 z-10"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -617,7 +647,7 @@
         <div class="grid grid-cols-2 gap-3">
           <div class="form-control">
             <label for="edit_first_name" class="label">
-              <span class="label-text font-medium">First Name</span>
+              <span class="label-text font-medium">Họ</span>
             </label>
             <input
               type="text"
@@ -633,7 +663,7 @@
 
           <div class="form-control">
             <label for="edit_last_name" class="label">
-              <span class="label-text font-medium">Last Name</span>
+              <span class="label-text font-medium">Tên</span>
             </label>
             <input
               type="text"
@@ -648,18 +678,18 @@
           </div>
         </div>
 
-        <div class="divider my-2 text-xs">Change Password (Optional)</div>
+        <div class="divider my-2 text-xs">Đổi mật khẩu (Tùy chọn)</div>
 
         <div class="form-control">
           <label for="edit_password" class="label">
-            <span class="label-text font-medium">New Password</span>
+            <span class="label-text font-medium">Mật khẩu mới</span>
           </label>
           <div class="relative">
             <span
-              class="absolute inset-y-0 left-0 flex items-center pl-3 text-base-content/40"
+              class="absolute inset-y-0 left-0 flex items-center pl-3 text-base-content/40 z-10"
             >
               <svg
-                class="h-5 w-5"
+                class="h-5 w-5 z-10"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -677,14 +707,14 @@
               id="edit_password"
               name="password"
               class="input input-bordered w-full pl-10"
-              placeholder="Leave blank to keep current"
+              placeholder="Để trống nếu không đổi"
               autocomplete="new-password"
               minlength="8"
               disabled={isLoading("update")}
             />
           </div>
           <div class="mt-1 text-xs text-base-content/60 pl-1">
-            Only fill this field if you want to change the password
+            Chỉ điền nếu bạn muốn đổi mật khẩu
           </div>
         </div>
 
@@ -695,7 +725,7 @@
             onclick={() => editDialog?.close()}
             disabled={isLoading("update")}
           >
-            Cancel
+            Hủy
           </button>
           <button
             type="submit"
@@ -704,10 +734,10 @@
           >
             {#if isLoading("update")}
               <span class="loading loading-spinner loading-sm"></span>
-              Updating...
+              Đang cập nhật...
             {:else}
               <svg
-                class="h-4 w-4"
+                class="h-4 w-4 z-10"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -719,7 +749,7 @@
                   d="M5 13l4 4L19 7"
                 />
               </svg>
-              Update Parent
+              Cập nhật
             {/if}
           </button>
         </div>
@@ -734,13 +764,13 @@
 <!-- Link Student Modal -->
 <dialog bind:this={linkDialog} class="modal">
   <div class="modal-box w-11/12 max-w-2xl">
-    <h3 class="font-bold text-xl mb-4">Link Student to Parent</h3>
+    <h3 class="font-bold text-xl mb-4">Liên kết học sinh với phụ huynh</h3>
 
     {#if linkingParent}
       <form
         method="POST"
         action="?/linkStudent"
-        use:enhance={createEnhance("link", "Student linked successfully!", () =>
+        use:enhance={createEnhance("link", "Liên kết thành công!", () =>
           linkDialog?.close(),
         )}
         class="space-y-4"
@@ -751,7 +781,7 @@
           <!-- 1. Select Class -->
           <div class="form-control">
             <label for="classSelect" class="label">
-              <span class="label-text font-medium">1. Select Class</span>
+              <span class="label-text font-medium">1. Chọn lớp</span>
             </label>
             <select
               id="classSelect"
@@ -759,7 +789,7 @@
               bind:value={selectedClassId}
               disabled={isLoading("link")}
             >
-              <option value={null} disabled selected>Choose a class...</option>
+              <option value={null} disabled selected>Chọn lớp...</option>
               {#each data.classes as cls}
                 <option value={cls.id}>{cls.name}</option>
               {/each}
@@ -769,7 +799,7 @@
           <!-- 2. Select Student -->
           <div class="form-control">
             <label for="studentSelect" class="label">
-              <span class="label-text font-medium">2. Select Student</span>
+              <span class="label-text font-medium">2. Chọn học sinh</span>
             </label>
             <select
               name="studentId"
@@ -780,9 +810,7 @@
               disabled={!selectedClassId || isLoading("link")}
             >
               <option value={null} disabled selected>
-                {!selectedClassId
-                  ? "Select a class first"
-                  : "Choose a student..."}
+                {!selectedClassId ? "Chọn lớp trước" : "Chọn học sinh..."}
               </option>
               {#each filteredStudents as student}
                 <option value={student.id}
@@ -796,19 +824,19 @@
 
         <!-- Manual Entry Fallback -->
         <div class="divider text-xs text-base-content/50">
-          OR ENTER MANUALLY
+          HOẶC NHẬP THỦ CÔNG
         </div>
 
         <div class="form-control">
           <label for="manualStudentId" class="label">
-            <span class="label-text font-medium">Student ID (Manual)</span>
+            <span class="label-text font-medium">Mã học sinh (Nhập tay)</span>
           </label>
           <input
             type="text"
             name="studentId"
             id="manualStudentId"
             class="input input-bordered w-full font-mono"
-            placeholder="Enter ID directly if known"
+            placeholder="Nhập mã nếu biết"
             value={selectedStudentId || ""}
             oninput={(e) => (selectedStudentId = e.currentTarget.value)}
             disabled={isLoading("link")}
@@ -822,7 +850,7 @@
             onclick={() => linkDialog?.close()}
             disabled={isLoading("link")}
           >
-            Cancel
+            Hủy
           </button>
           <button
             type="submit"
@@ -831,9 +859,9 @@
           >
             {#if isLoading("link")}
               <span class="loading loading-spinner loading-sm"></span>
-              Linking...
+              Đang liên kết...
             {:else}
-              Link Student
+              Liên kết
             {/if}
           </button>
         </div>
