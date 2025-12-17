@@ -218,17 +218,17 @@
 {/if}
 
 <main
-  class="flex flex-col overflow-hidden"
-  class:h-dvh={page.url.pathname === "/"}
+  class="flex flex-col min-h-dvh overflow-hidden"
   style:padding-top={isAuthPage ? "0px" : "var(--header-height, 0px)"}
 >
   {#if !isAuthPage}
     <NavigationBar user={data.user} />
   {/if}
 
-  <div class=" overflow-x-hidden h-dvh overflow-y-auto scroll-smooth">
+  <div class="flex-1 overflow-y-auto overflow-x-hidden scroll-smooth">
     {@render children()}
   </div>
+
   <Footer />
 </main>
 
