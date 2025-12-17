@@ -107,21 +107,28 @@
 
         <div class="bg-white rounded-2xl shadow-sm border border-gray-200">
           <!-- Student Header -->
-          <div class="p-6 flex items-center gap-4">
-            <div class="avatar placeholder">
-              <div
-                class="bg-primary text-primary-content rounded-full w-12 flex items-center justify-center"
-              >
-                <span class="text-xl font-bold">{student.first_name[0]}</span>
+          <div class="p-6 flex items-center justify-between gap-4">
+            <div class="flex items-center gap-4">
+              <a href="/student/{student.id}" class="avatar placeholder hover:opacity-80 transition-opacity">
+                <div
+                  class="bg-primary text-primary-content rounded-full w-12 flex items-center justify-center"
+                >
+                  <span class="text-xl font-bold">{student.first_name[0]}</span>
+                </div>
+              </a>
+              <div>
+                <a href="/student/{student.id}" class="hover:underline">
+                  <h2 class="text-xl font-bold text-gray-900">
+                    {student.first_name}
+                    {student.last_name}
+                  </h2>
+                </a>
+                <p class="text-sm text-gray-500 font-mono">ID: {student.id}</p>
               </div>
             </div>
-            <div>
-              <h2 class="text-xl font-bold text-gray-900">
-                {student.first_name}
-                {student.last_name}
-              </h2>
-              <p class="text-sm text-gray-500 font-mono">ID: {student.id}</p>
-            </div>
+            <a href="/student/{student.id}" class="btn btn-sm btn-outline btn-secondary">
+              Xem chi tiết Profile
+            </a>
           </div>
 
           <!-- Attendance History -->

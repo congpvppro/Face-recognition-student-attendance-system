@@ -26,13 +26,19 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
+    "@elysiajs/cors": "^1.4.0",
+    "@elysiajs/jwt": "^1.4.0",
+    "@elysiajs/openapi": "^1.4.11",
     "@fontsource-variable/josefin-sans": "^5.2.8",
     "@fontsource-variable/montserrat": "^5.2.8",
     "@fontsource-variable/raleway": "^5.2.8",
     "@fontsource-variable/work-sans": "^5.2.8",
     "@fontsource/cormorant-sc": "^5.2.8",
+    "chart.js": "^4.5.1",
     "dotenv": "^17.2.3",
     "ky": "^1.14.1",
+    "lucide-svelte": "^0.561.0",
+    "svelte-chartjs": "^3.1.5",
     "tsx": "^4.21.0"
   }
 }

@@ -133,9 +133,12 @@
                 </div>
 
                 <div class="card-actions justify-end mt-4">
-                  <button class="btn btn-sm btn-outline btn-secondary"
-                    >Xem điểm danh</button
+                  <a 
+                    href="/student/{student.id}" 
+                    class="btn btn-sm btn-outline btn-secondary"
                   >
+                    Xem chi tiết
+                  </a>
                 </div>
               </div>
             </div>

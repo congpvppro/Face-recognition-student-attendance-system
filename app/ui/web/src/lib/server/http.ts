@@ -7,6 +7,9 @@ const PYTHON_API_URL = "http://localhost:8000/";
 const TS_API_URL = "http://localhost:3000/";
 
 export function api(event: RequestEvent, options: Options = {}): KyInstance {
+  // Get the auth token from cookies
+  const token = event.cookies.get('auth');
+
   const defaultOptions: Options = {
     prefixUrl: PYTHON_API_URL,
     credentials: "include",
@@ -14,6 +17,14 @@ export function api(event: RequestEvent, options: Options = {}): KyInstance {
     timeout: 10000,
     retry: { limit: 2 },
     hooks: {
+      beforeRequest: [
+        (request) => {
+          // Add Authorization header with JWT token
+          if (token) {
+            request.headers.set("Authorization", `Bearer ${token}`);
+          }
+        },
+      ],
       afterResponse: [
         async (_request, _options, response) => {
           if (!response.ok) {

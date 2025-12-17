@@ -640,17 +640,18 @@
               >
                 <td>
                   <div class="flex items-center gap-3">
-                    <div class="avatar placeholder">
-                      <div
-                        class="w-9 h-9 rounded-full bg-primary/10 text-primary font-semibold flex items-center justify-center"
-                      >
+                    <!-- Wrap Avatar trong thẻ a -->
+                    <a href="/student/{student.id}" class="avatar placeholder hover:opacity-80 transition-opacity">
+                      <div class="w-9 h-9 rounded-full bg-primary/10 text-primary font-semibold flex items-center justify-center">
                         <span class="text-xs">{getInitials(student)}</span>
                       </div>
-                    </div>
+                    </a>
+                    
                     <div>
-                      <p class="font-medium text-base-content leading-tight">
+                      <!-- Wrap Tên trong thẻ a -->
+                      <a href="/student/{student.id}" class="font-medium text-base-content leading-tight hover:text-primary hover:underline transition-colors">
                         {getStudentDisplayName(student)}
-                      </p>
+                      </a>
                       <p class="text-xs text-base-content/50 font-mono">
                         {student.id}
                       </p>
