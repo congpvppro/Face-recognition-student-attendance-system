@@ -21,6 +21,7 @@
     FileCheck,
     ArrowLeft,
   } from "lucide-svelte";
+  import DailyAttendanceChart from "$lib/components/DailyAttendanceChart.svelte";
   import type { PageData } from "./$types";
 
   // Total sessions per day (matching Python DB class_schedule)
@@ -51,6 +52,8 @@
   let searchQuery = $state("");
   let selectedDate = $state(data.selectedDate);
   let isUpdating = $state(false);
+  let dailyStats = $state<any>(null);
+  let loadingDailyStats = $state(false);
 
   // Date navigation helpers
   function navigateDate(days: number) {
@@ -377,6 +380,45 @@
       month: "numeric",
     });
   }
+
+  // Fetch daily attendance statistics
+  async function fetchDailyStats(date: string) {
+    loadingDailyStats = true;
+    try {
+      const token =
+        document.cookie
+          .split("; ")
+          .find((row) => row.startsWith("auth="))
+          ?.split("=")[1] || "";
+
+      const response = await fetch(
+        `http://localhost:8000/api/classes/${data.classDetail.id}/daily-attendance?date=${date}`,
+        {
+          credentials: "include",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      if (response.ok) {
+        dailyStats = await response.json();
+      } else {
+        console.error("Failed to fetch daily stats");
+        dailyStats = null;
+      }
+    } catch (error) {
+      console.error("Error fetching daily stats:", error);
+      dailyStats = null;
+    } finally {
+      loadingDailyStats = false;
+    }
+  }
+
+  // Fetch daily stats when date changes
+  $effect(() => {
+    fetchDailyStats(selectedDate);
+  });
 </script>
 
 <svelte:head>
@@ -487,6 +529,59 @@
             </div>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- Daily Attendance Chart Section -->
+    <div class="card bg-base-100 shadow-lg mb-6">
+      <div class="card-body">
+        <h2 class="card-title text-lg mb-4">Tổng quan điểm danh hôm nay</h2>
+
+        {#if loadingDailyStats}
+          <div class="flex justify-center items-center py-12">
+            <span class="loading loading-spinner loading-lg"></span>
+          </div>
+        {:else if dailyStats}
+          <!-- Statistics Summary -->
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+            <div class="stat bg-base-200 rounded-lg p-3">
+              <div class="stat-title text-xs">Tổng số</div>
+              <div class="stat-value text-2xl">{dailyStats.total_students}</div>
+            </div>
+            <div class="stat bg-success/10 rounded-lg p-3">
+              <div class="stat-title text-xs text-success">Có mặt</div>
+              <div class="stat-value text-2xl text-success">
+                {dailyStats.present}
+              </div>
+              <div class="stat-desc text-xs">
+                ({dailyStats.on_time} đúng giờ, {dailyStats.late} muộn)
+              </div>
+            </div>
+            <div class="stat bg-error/10 rounded-lg p-3">
+              <div class="stat-title text-xs text-error">Vắng</div>
+              <div class="stat-value text-2xl text-error">
+                {dailyStats.absent}
+              </div>
+            </div>
+            <div class="stat bg-primary/10 rounded-lg p-3">
+              <div class="stat-title text-xs text-primary">Tỷ lệ</div>
+              <div class="stat-value text-2xl text-primary">
+                {dailyStats.attendance_rate}%
+              </div>
+            </div>
+          </div>
+
+          <!-- Pie Chart -->
+          <div class="flex justify-center">
+            <div class="w-full max-w-md">
+              <DailyAttendanceChart data={dailyStats} />
+            </div>
+          </div>
+        {:else}
+          <div class="text-center py-8 text-base-content/60">
+            Không có dữ liệu điểm danh
+          </div>
+        {/if}
       </div>
     </div>
 
@@ -641,15 +736,23 @@
                 <td>
                   <div class="flex items-center gap-3">
                     <!-- Wrap Avatar trong thẻ a -->
-                    <a href="/student/{student.id}" class="avatar placeholder hover:opacity-80 transition-opacity">
-                      <div class="w-9 h-9 rounded-full bg-primary/10 text-primary font-semibold flex items-center justify-center">
+                    <a
+                      href="/student/{student.id}"
+                      class="avatar placeholder hover:opacity-80 transition-opacity"
+                    >
+                      <div
+                        class="w-9 h-9 rounded-full bg-primary/10 text-primary font-semibold flex items-center justify-center"
+                      >
                         <span class="text-xs">{getInitials(student)}</span>
                       </div>
                     </a>
-                    
+
                     <div>
                       <!-- Wrap Tên trong thẻ a -->
-                      <a href="/student/{student.id}" class="font-medium text-base-content leading-tight hover:text-primary hover:underline transition-colors">
+                      <a
+                        href="/student/{student.id}"
+                        class="font-medium text-base-content leading-tight hover:text-primary hover:underline transition-colors"
+                      >
                         {getStudentDisplayName(student)}
                       </a>
                       <p class="text-xs text-base-content/50 font-mono">

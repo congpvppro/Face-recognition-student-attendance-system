@@ -1474,5 +1474,141 @@ async def get_csv_data(
         print(traceback.format_exc())
         raise HTTPException(status_code=500, detail="Failed to read CSV file")
 
+# --- Class Daily Attendance Endpoint ---
+@app.get("/api/classes/{class_id}/daily-attendance")
+async def get_class_daily_attendance(
+    class_id: int,
+    date: str = Query(None, description="Date in YYYY-MM-DD format, defaults to today"),
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Get daily attendance statistics for a specific class.
+    Permission: Admin or Teacher
+    """
+    # Permission check
+    if current_user.get("role") not in ["admin", "teacher"]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    try:
+        # Get class info
+        class_info = app.state.user_db.get_class_by_id(class_id)
+        if not class_info:
+            raise HTTPException(status_code=404, detail="Class not found")
+        
+        # Set default date to today
+        if not date:
+            from datetime import datetime
+            date = datetime.today().strftime('%Y-%m-%d')
+        
+        # Get students in class
+        students = app.state.user_db.get_students_by_class(class_id)
+        total_students = len(students)
+        
+        if total_students == 0:
+            return {
+                'class_id': class_id,
+                'class_name': class_info.get('name', f'Class {class_id}'),
+                'date': date,
+                'total_students': 0,
+                'present': 0,
+                'on_time': 0,
+                'late': 0,
+                'absent': 0,
+                'excused': 0,
+                'attendance_rate': 0,
+                'students': []
+            }
+        
+        # Query attendance for this class on this date
+        with app.state.user_db._get_connection() as conn:
+            cursor = conn.cursor()
+            
+            # Get attendance records for all students in class on this date
+            student_ids = [s['id'] for s in students]
+            placeholders = ','.join(['?' for _ in student_ids])
+            
+            cursor.execute(f"""
+                SELECT 
+                    student_id,
+                    attendance_status,
+                    MIN(entry_time) as first_entry,
+                    SUM(late_minutes) as total_late_minutes
+                FROM attendance_sessions
+                WHERE student_id IN ({placeholders})
+                  AND session_date = ?
+                GROUP BY student_id
+            """, (*student_ids, date))
+            
+            attendance_records = {row[0]: row for row in cursor.fetchall()}
+        
+        # Aggregate statistics
+        stats = {
+            'on_time': 0,
+            'late': 0,
+            'absent': 0,
+            'excused': 0
+        }
+        
+        student_details = []
+        for student in students:
+            sid = student['id']
+            record = attendance_records.get(sid)
+            
+            if record:
+                status = record[1]  # attendance_status
+                entry_time = record[2]
+                late_minutes = record[3] or 0
+                
+                if status == 'on_time':
+                    stats['on_time'] += 1
+                elif status == 'late':
+                    stats['late'] += 1
+                elif status == 'excused':
+                    stats['excused'] += 1
+                else:  # absent
+                    stats['absent'] += 1
+                
+                student_details.append({
+                    'student_id': sid,
+                    'student_name': f"{student.get('first_name', '')} {student.get('last_name', '')}".strip(),
+                    'status': status,
+                    'entry_time': entry_time,
+                    'late_minutes': late_minutes
+                })
+            else:
+                # No record = absent
+                stats['absent'] += 1
+                student_details.append({
+                    'student_id': sid,
+                    'student_name': f"{student.get('first_name', '')} {student.get('last_name', '')}".strip(),
+                    'status': 'absent',
+                    'entry_time': None,
+                    'late_minutes': None
+                })
+        
+        present = stats['on_time'] + stats['late']
+        attendance_rate = (present / total_students * 100) if total_students > 0 else 0
+        
+        return {
+            'class_id': class_id,
+            'class_name': class_info.get('name', f'Class {class_id}'),
+            'date': date,
+            'total_students': total_students,
+            'present': present,
+            'on_time': stats['on_time'],
+            'late': stats['late'],
+            'absent': stats['absent'],
+            'excused': stats['excused'],
+            'attendance_rate': round(attendance_rate, 1),
+            'students': student_details
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error getting class daily attendance: {e}")
+        import traceback
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail="Failed to get class daily attendance")
+
 # --- To run this API, use the command: ---
 # uvicorn api:app --host 0.0.0.0 --port 8000 --reload
