@@ -1,7 +1,7 @@
 from datetime import datetime, date
-from agent.Utility import get_connection
+from Utility import get_connection
 import logging
-from agent.Utility import get_student_name, active_check, get_student_circumstances
+from Utility import get_student_name, active_check, get_student_circumstances
 import os
 from langchain_groq import ChatGroq
 from dotenv import load_dotenv

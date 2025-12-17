@@ -20,7 +20,7 @@ from models.face_tracking.visualize import plot_tracking
 from utils.logging import setup_logging
 from agent.agent_scheduler import start_analysis_scheduler
 from agent.notify_agent_scheduler import start_notify_scheduler
-
+from agent.approval_agent_scheduler import start_approval_scheduler
 load_dotenv()
 warnings.filterwarnings("ignore")
 setup_logging(log_to_file=True)
@@ -457,7 +457,7 @@ def main(params):
     # Start Background Schedulers
     start_analysis_scheduler("12:00")
     start_notify_scheduler(delay_minutes=5)
-    
+    start_approval_scheduler("7:00")
     # Build or Load Face Vector DB
     face_db = build_face_database(detector, recognizer, params, force_update=params.update_db)
 

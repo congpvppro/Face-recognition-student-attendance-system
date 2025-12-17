@@ -1,7 +1,7 @@
 import os
-from agent.Utility import init_sqlite_database, get_connection, get_student_circumstances
-from agent.Utility import get_student_attendance_history, parse_ai_response, calculate_late_minutes
-from agent.Utility import (get_or_create_student, get_session_by_number, get_current_session_direct,
+from Utility import init_sqlite_database, get_connection, get_student_circumstances
+from Utility import get_student_attendance_history, parse_ai_response, calculate_late_minutes
+from Utility import (get_or_create_student, get_session_by_number, get_current_session_direct,
                      get_current_session_with_time)
 from langchain_groq import ChatGroq
 import logging

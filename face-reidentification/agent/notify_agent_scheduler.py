@@ -3,8 +3,8 @@ import schedule
 import time
 import threading
 from datetime import datetime
-from agent.NotifyAgent import NotifyAgent
-from agent.Utility import get_connection
+from NotifyAgent import NotifyAgent
+from Utility import get_connection
 
 
 

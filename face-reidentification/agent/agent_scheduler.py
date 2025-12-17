@@ -5,7 +5,7 @@ import signal
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from agent.AnalysisAgent import AnalysisAgent
+from AnalysisAgent import AnalysisAgent
 
 RUNNING = True
 import certifi
@@ -18,7 +18,7 @@ print("SSL_CERT_FILE set to:", os.environ["SSL_CERT_FILE"])
 import schedule
 import time
 import threading
-from agent.AnalysisAgent import AnalysisAgent
+from AnalysisAgent import AnalysisAgent
 
 load_dotenv()
 

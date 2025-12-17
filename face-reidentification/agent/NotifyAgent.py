@@ -1,4 +1,4 @@
-from agent.Utility import get_connection
+from Utility import get_connection
 from datetime import datetime
 from sqlite3 import Error
 
