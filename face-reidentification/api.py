@@ -2,9 +2,11 @@ import os
 import cv2
 import numpy as np
 import warnings
+import csv
+import io
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, UploadFile, File, HTTPException, Form, Depends, Header
-from fastapi.responses import FileResponse
+from fastapi import FastAPI, UploadFile, File, HTTPException, Form, Depends, Header, Query
+from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Optional, List
 from pydantic import BaseModel, EmailStr
@@ -19,6 +21,7 @@ os.environ['KMP_DUPLICATE_LIB_OK'] = 'TRUE'
 # Import your project's modules
 from models import SCRFD, ArcFace
 from database import FaceDatabase, UserDatabase
+from agent.AnalysisAgent import AnalysisAgent
 
 # --- Configuration ---
 # Get the absolute path of the directory where this script is located
@@ -656,6 +659,105 @@ async def get_all_parent_student_links(current_user: dict = Depends(get_admin_us
     """
     links = app.state.user_db.get_all_parent_student_links()
     return {"links": links}
+
+
+# ==================== Attendance Export Endpoints ====================
+
+@app.get("/api/attendance/export")
+async def export_attendance(
+    class_id: int = Query(..., description="Class ID"),
+    date: str = Query(..., description="Date in YYYY-MM-DD format"),
+    format: str = Query("csv", description="Export format: csv or excel"),
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Export attendance data for a class on a specific date as CSV or Excel.
+    Uses AnalysisAgent for consistent export logic.
+    """
+    # Only teachers and admins can export
+    if current_user["role"] not in ["admin", "teacher"]:
+        raise HTTPException(status_code=403, detail="Access denied.")
+    
+    try:
+        result = AnalysisAgent.export_class_attendance(class_id, date, format)
+        
+        if not result:
+            raise HTTPException(status_code=500, detail="Failed to generate export.")
+        
+        content = result['content']
+        filename = result['filename']
+        
+        if format == 'excel':
+            return StreamingResponse(
+                io.BytesIO(content),
+                media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                headers={"Content-Disposition": f"attachment; filename={filename}"}
+            )
+        else:
+            # CSV format - encode with BOM for Excel compatibility
+            return StreamingResponse(
+                io.BytesIO(content.encode('utf-8-sig')),
+                media_type="text/csv",
+                headers={"Content-Disposition": f"attachment; filename={filename}"}
+            )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error exporting attendance: {e}")
+        raise HTTPException(status_code=500, detail="Failed to export attendance data.")
+
+
+@app.get("/api/attendance/export-report")
+async def export_student_report(
+    class_id: Optional[int] = Query(None, description="Class ID to filter students"),
+    student_id: Optional[str] = Query(None, description="Specific student ID"),
+    date: Optional[str] = Query(None, description="Date in YYYY-MM-DD format (optional, for total summary leave empty)"),
+    format: str = Query("csv", description="Export format: csv or excel"),
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Export student attendance report as CSV or Excel.
+    Can filter by class_id, student_id, and/or date.
+    If no date is provided, returns total summary across all dates.
+    """
+    # Only teachers and admins can export
+    if current_user["role"] not in ["admin", "teacher"]:
+        raise HTTPException(status_code=403, detail="Access denied.")
+    
+    try:
+        result = AnalysisAgent.export_student_report(
+            student_id=student_id,
+            date=date,
+            format=format,
+            class_id=class_id
+        )
+        
+        if not result:
+            raise HTTPException(status_code=500, detail="Failed to generate report.")
+        
+        content = result['content']
+        filename = result['filename']
+        
+        if format == 'excel':
+            return StreamingResponse(
+                io.BytesIO(content),
+                media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                headers={"Content-Disposition": f"attachment; filename={filename}"}
+            )
+        else:
+            # CSV format - encode with BOM for Excel compatibility
+            return StreamingResponse(
+                io.BytesIO(content.encode('utf-8-sig')),
+                media_type="text/csv",
+                headers={"Content-Disposition": f"attachment; filename={filename}"}
+            )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error exporting student report: {e}")
+        raise HTTPException(status_code=500, detail="Failed to export student report.")
 
 
 # --- To run this API, use the command: ---

@@ -90,4 +90,15 @@ export class AttendanceService {
       status,
     );
   }
+
+  /**
+   * Export student attendance report for a class
+   */
+  public exportStudentReport(
+    classId: number,
+    date?: string,
+  ): { content: string; filename: string } {
+    this.verifyClassExists(classId);
+    return this.extAttendanceService.exportStudentReport(classId, date);
+  }
 }

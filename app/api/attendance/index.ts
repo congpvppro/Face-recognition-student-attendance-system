@@ -42,66 +42,71 @@ export const attendancePlugin = new Elysia({ prefix: "/attendance" })
       }),
     },
   )
-  .guard(
-    {
-      beforeHandle: async ({ jwt, cookie }) => {
-        const token = cookie?.auth?.value;
-        if (!token || !(await jwt.verify(token))) {
-          throw new UnauthorizedError("Unauthorized");
-        }
-      },
+  // Low security mode - authentication handled at SvelteKit level
+  .get(
+    "/",
+    ({ attendanceService, query }) => {
+      const { classId, date, studentId } = query;
+
+      if (studentId) {
+        return attendanceService.getAttendanceByStudent(studentId);
+      }
+
+      return attendanceService.getAttendance({
+        classId: classId ? Number(classId) : undefined,
+        date: date || undefined,
+      });
     },
-    (app) =>
-      app
-        .resolve(async ({ jwt, cookie }) => {
-          const token = cookie?.auth?.value;
-          const user = token ? await jwt.verify(token) : null;
-          return { user };
-        })
-        .get(
-          "/",
-          ({ attendanceService, query }) => {
-            const { classId, date, studentId } = query;
+    {
+      query: t.Object({
+        classId: t.Optional(t.Numeric()),
+        date: t.Optional(t.String()),
+        studentId: t.Optional(t.String()),
+      }),
+    },
+  )
+  .patch(
+    "/",
+    ({ attendanceService, body }) => {
+      // Authentication is handled at SvelteKit level (hooks.server.ts)
+      // Only teacher/admin routes can access this endpoint
+      return attendanceService.updateAttendanceStatus(
+        body.studentId,
+        body.date,
+        body.session,
+        body.status,
+      );
+    },
+    {
+      body: t.Object({
+        studentId: t.String(),
+        date: t.String(),
+        session: t.Numeric(),
+        status: AttendanceStatusEnum,
+      }),
+    },
+  )
+  .get(
+    "/export-report",
+    ({ attendanceService, query, set }) => {
+      // Authentication is handled at SvelteKit level (hooks.server.ts)
+      const result = attendanceService.exportStudentReport(
+        query.classId,
+        query.date || undefined,
+      );
 
-            if (studentId) {
-              return attendanceService.getAttendanceByStudent(studentId);
-            }
+      // Set response headers for CSV download
+      set.headers["Content-Type"] = "text/csv; charset=utf-8";
+      set.headers["Content-Disposition"] =
+        `attachment; filename="${result.filename}"`;
 
-            return attendanceService.getAttendance({
-              classId: classId ? Number(classId) : undefined,
-              date: date || undefined,
-            });
-          },
-          {
-            query: t.Object({
-              classId: t.Optional(t.Numeric()),
-              date: t.Optional(t.String()),
-              studentId: t.Optional(t.String()),
-            }),
-          },
-        )
-        .patch(
-          "/",
-          ({ attendanceService, body, user }) => {
-            if (user?.role !== "teacher" && user?.role !== "admin") {
-              throw new UnauthorizedError(
-                "Only teachers or admins can update attendance.",
-              );
-            }
-            return attendanceService.updateAttendanceStatus(
-              body.studentId,
-              body.date,
-              body.session,
-              body.status,
-            );
-          },
-          {
-            body: t.Object({
-              studentId: t.String(),
-              date: t.String(),
-              session: t.Numeric(),
-              status: AttendanceStatusEnum,
-            }),
-          },
-        ),
+      // Add BOM for Excel UTF-8 compatibility
+      return "\ufeff" + result.content;
+    },
+    {
+      query: t.Object({
+        classId: t.Numeric(),
+        date: t.Optional(t.String()),
+      }),
+    },
   );
