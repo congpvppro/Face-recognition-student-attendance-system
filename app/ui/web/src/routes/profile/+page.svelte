@@ -96,7 +96,7 @@
                   <div class="flex items-center gap-4">
                     <div class="avatar placeholder">
                       <div
-                        class="bg-secondary text-secondary-content rounded-xl w-16"
+                        class="bg-secondary text-secondary-content rounded-xl w-16 flex items-center justify-center"
                       >
                         <span class="text-2xl font-bold"
                           >{student.first_name[0]}</span

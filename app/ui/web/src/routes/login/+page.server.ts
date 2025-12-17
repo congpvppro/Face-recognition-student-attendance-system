@@ -4,7 +4,6 @@ import { api } from "$lib/server/http";
 
 export const actions: Actions = {
   logout: async (event) => {
-    console.log("Logout action triggered");
     event.cookies.delete("auth", {
       path: "/",
       httpOnly: true,
@@ -12,6 +11,7 @@ export const actions: Actions = {
     });
     throw redirect(303, "/login");
   },
+
   login: async (event) => {
     const fd = await event.request.formData();
     const email = String(fd.get("email") ?? "");
@@ -21,33 +21,27 @@ export const actions: Actions = {
       return fail(400, { message: "Email và mật khẩu là bắt buộc." });
     }
 
-    const payload = { email, password };
     const client = api(event);
-
     let redirectUrl = "/";
 
     try {
       const response = await client
-        .post("api/auth/login", { json: payload })
+        .post("api/auth/login", { json: { email, password } })
         .json<{ token: string }>();
 
       event.cookies.set("auth", response.token, {
         path: "/",
         httpOnly: true,
         sameSite: "lax",
-        maxAge: 60 * 60 * 24 * 7, // 7 days
+        maxAge: 60 * 60 * 24 * 7,
       });
 
-      // Fetch user to determine redirect
       const { user } = await client
         .get("api/users/me", {
-          headers: {
-            Authorization: `Bearer ${response.token}`,
-          },
+          headers: { Authorization: `Bearer ${response.token}` },
         })
         .json<{ user: { role: string } }>();
 
-      // Determine redirect URL based on role
       if (user.role === "admin") redirectUrl = "/admin/statistics";
       else if (user.role === "teacher") redirectUrl = "/teacher/classes";
       else if (user.role === "parent") redirectUrl = "/parent/dashboard";
@@ -60,13 +54,11 @@ export const actions: Actions = {
             "Thông tin đăng nhập không hợp lệ hoặc lỗi máy chủ.",
         });
       }
-      console.error("An unexpected error occurred during API call:", e);
       return fail(500, {
         message: "Đã xảy ra lỗi không mong muốn. Vui lòng thử lại.",
       });
     }
 
-    // Return success with redirect URL - let client handle navigation
-    return { success: true, redirectUrl };
+    throw redirect(303, redirectUrl);
   },
 };

@@ -189,7 +189,7 @@
 
   // Derived State
   const isAuthPage = $derived(
-    ["/login", "/register"].includes(page.url.pathname),
+    page.url.pathname === "/login" || page.url.pathname === "/register",
   );
 </script>
 
@@ -219,7 +219,7 @@
 
 <main
   class="flex flex-col min-h-dvh overflow-hidden"
-  style:padding-top={isAuthPage ? "0px" : "var(--header-height, 0px)"}
+  style:padding-top={isAuthPage ? "0px" : "var(--header-height, 64px)"}
 >
   {#if !isAuthPage}
     <NavigationBar user={data.user} />

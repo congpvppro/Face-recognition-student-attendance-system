@@ -39,16 +39,17 @@
         action="?/login"
         use:enhance={() => {
           submitting = true;
+
           return async ({ result, update }) => {
-            if (result.type === "success") {
-              showToast({
-                message: "Đăng nhập thành công!",
-                type: "success",
-              });
-              await goto(result.data?.redirectUrl || "/");
+            if (result.type === "redirect") {
+              showToast({ message: "Đăng nhập thành công!", type: "success" });
+              await update(); // lets SvelteKit follow the redirect
             } else if (result.type === "failure") {
-              await update();
+              await update(); // show validation/message in page.form
+            } else {
+              await update(); // handle "success"/"error" consistently
             }
+
             submitting = false;
           };
         }}

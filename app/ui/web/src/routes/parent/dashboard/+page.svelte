@@ -109,7 +109,9 @@
           <!-- Student Header -->
           <div class="p-6 flex items-center gap-4">
             <div class="avatar placeholder">
-              <div class="bg-primary text-primary-content rounded-full w-12">
+              <div
+                class="bg-primary text-primary-content rounded-full w-12 flex items-center justify-center"
+              >
                 <span class="text-xl font-bold">{student.first_name[0]}</span>
               </div>
             </div>
