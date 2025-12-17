@@ -1329,5 +1329,150 @@ async def get_student_attendance_history(
         print(f"Traceback: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail="Failed to get attendance history")
 
+# --- CSV Attendance Summary Endpoints ---
+@app.get("/api/attendance/csv-files")
+async def list_csv_files(current_user: dict = Depends(get_current_user)):
+    """
+    List all CSV files in agent folder.
+    Admin only access.
+    """
+    # Permission check
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    try:
+        import glob
+        import re
+        from pathlib import Path
+        
+        agent_folder = os.path.join(BASE_DIR, "agent")
+        csv_files = []
+        
+        # Find all CSV files
+        for filepath in glob.glob(os.path.join(agent_folder, "*.csv")):
+            filename = os.path.basename(filepath)
+            file_stat = os.stat(filepath)
+            
+            # Parse date from filename (format: student_attendance_YYYY-MM-DD.csv)
+            date_match = re.search(r'(\d{4}-\d{2}-\d{2})', filename)
+            date_str = date_match.group(1) if date_match else None
+            
+            # Create display name
+            if "TOTAL_SUMMARY" in filename:
+                display_name = "Tổng hợp toàn bộ"
+            elif date_str:
+                display_name = f"Ngày {date_str}"
+            else:
+                display_name = filename
+            
+            csv_files.append({
+                "filename": filename,
+                "display_name": display_name,
+                "date": date_str,
+                "size": file_stat.st_size,
+                "modified": datetime.fromtimestamp(file_stat.st_mtime).isoformat()
+            })
+        
+        # Sort by date (newest first), TOTAL_SUMMARY always first
+        csv_files.sort(key=lambda x: (
+            0 if "TOTAL_SUMMARY" in x["filename"] else 1,
+            x["date"] or ""
+        ), reverse=True)
+        
+        return {"files": csv_files}
+    except Exception as e:
+        print(f"Error listing CSV files: {e}")
+        raise HTTPException(status_code=500, detail="Failed to list CSV files")
+
+
+@app.get("/api/attendance/csv/{filename}")
+async def get_csv_data(
+    filename: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Read and parse CSV file, return as JSON.
+    Admin only access.
+    Security: Validates filename to prevent path traversal.
+    """
+    # Permission check
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    # Security: Validate filename (only alphanumeric, dash, underscore, dot)
+    import re
+    if not re.match(r'^[a-zA-Z0-9_\-\.]+\.csv$', filename):
+        raise HTTPException(status_code=400, detail="Invalid filename")
+    
+    # Prevent path traversal
+    if '..' in filename or '/' in filename or '\\' in filename:
+        raise HTTPException(status_code=400, detail="Invalid filename")
+    
+    try:
+        filepath = os.path.join(BASE_DIR, "agent", filename)
+        
+        # Check file exists
+        if not os.path.exists(filepath):
+            raise HTTPException(status_code=404, detail="File not found")
+        
+        # Read CSV
+        data = []
+        with open(filepath, 'r', encoding='utf-8') as f:
+            csv_reader = csv.DictReader(f)
+            headers = csv_reader.fieldnames
+            
+            for row in csv_reader:
+                # Clean and convert data
+                data.append({
+                    "student_id": row.get("Student ID", "").strip(),
+                    "student_name": row.get("Student Name", "").strip(),
+                    "total_sessions": int(row.get("Total Sessions", 0) or 0),
+                    "attended": int(row.get("Attended", 0) or 0),
+                    "absent": int(row.get("Absent", 0) or 0),
+                    "late": int(row.get("Late", 0) or 0),
+                    "attendance_percent": row.get("Attendance %", "0%").strip(),
+                    "avg_score": float(row.get("Avg Score", 0) or 0)
+                })
+        
+        # Calculate summary
+        total_students = len(data)
+        if total_students > 0:
+            total_sessions_sum = sum(d["total_sessions"] for d in data)
+            avg_sessions = total_sessions_sum / total_students if total_students > 0 else 0
+            
+            # Calculate average attendance percentage
+            attendance_values = []
+            for d in data:
+                percent_str = d["attendance_percent"].replace("%", "")
+                try:
+                    attendance_values.append(float(percent_str))
+                except:
+                    attendance_values.append(0)
+            
+            avg_attendance = sum(attendance_values) / len(attendance_values) if attendance_values else 0
+        else:
+            avg_sessions = 0
+            avg_attendance = 0
+        
+        summary = {
+            "total_students": total_students,
+            "avg_attendance": f"{avg_attendance:.1f}%",
+            "avg_sessions": round(avg_sessions, 1)
+        }
+        
+        return {
+            "filename": filename,
+            "headers": headers,
+            "data": data,
+            "summary": summary
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error reading CSV file: {e}")
+        import traceback
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail="Failed to read CSV file")
+
 # --- To run this API, use the command: ---
 # uvicorn api:app --host 0.0.0.0 --port 8000 --reload

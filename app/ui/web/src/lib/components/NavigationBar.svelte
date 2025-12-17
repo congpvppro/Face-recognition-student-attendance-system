@@ -40,6 +40,11 @@
             icon: UserPlus,
           }, // Face ID Registration
           { label: "Thống kê", href: "/admin/statistics", icon: BarChart3 },
+          {
+            label: "Báo cáo tổng hợp",
+            href: "/admin/attendance-summary",
+            icon: FileText,
+          },
         ];
       case "teacher":
         return [
