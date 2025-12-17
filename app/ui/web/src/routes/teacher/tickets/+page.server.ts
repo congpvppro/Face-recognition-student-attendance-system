@@ -1,9 +1,9 @@
 import { fail } from "@sveltejs/kit";
-import { api } from "$lib/server/http";
+import { tsApi } from "$lib/server/http";
 import type { Actions, PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async (event) => {
-  const client = api(event);
+  const client = tsApi(event);
   try {
     const { tickets } = await client
       .get("api/tickets")
@@ -18,7 +18,7 @@ export const load: PageServerLoad = async (event) => {
 export const actions: Actions = {
   updateStatus: async (event) => {
     const fd = await event.request.formData();
-    const client = api(event);
+    const client = tsApi(event);
 
     const ticketId = Number(fd.get("ticketId"));
     const status = String(fd.get("status"));

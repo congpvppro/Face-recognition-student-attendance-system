@@ -1,15 +1,12 @@
-import { api } from "$lib/server/http";
+import { tsApi } from "$lib/server/http";
 import type { PageServerLoad, Actions } from "./$types";
 import { fail } from "@sveltejs/kit";
 
 export const load: PageServerLoad = async (event) => {
   const { classId } = event.params;
-  const client = api(event);
+  const client = tsApi(event);
 
   // Fetch class details (which includes students)
-  // Since GET /classes returns all, we might need to filter or find a specific endpoint.
-  // There isn't a GET /classes/:id endpoint in the current plugin.
-  // I should probably add one or just fetch all and find. Fetching all is inefficient but works for now.
   const classes = await client.get("api/classes").json<any[]>();
   const classDetail = classes.find((c) => c.id === Number(classId));
 
@@ -36,7 +33,7 @@ export const load: PageServerLoad = async (event) => {
 
 export const actions: Actions = {
   addStudent: async (event) => {
-    const client = api(event);
+    const client = tsApi(event);
     const formData = await event.request.formData();
     const studentId = formData.get("studentId") as string;
     const classId = Number(event.params.classId);
@@ -59,7 +56,7 @@ export const actions: Actions = {
     }
   },
   updateAttendance: async (event) => {
-    const client = api(event);
+    const client = tsApi(event);
     const formData = await event.request.formData();
     const studentId = formData.get("studentId") as string;
     const status = formData.get("status") as string;

@@ -1,31 +1,64 @@
--- SQLite-compatible schema for attendance system
+-- =============================================
+-- Unified SQLite Schema for Attendance System
+-- =============================================
+-- This schema is shared between Python core and TypeScript API
+-- All tables use consistent data types and foreign key relationships
+
+PRAGMA foreign_keys = ON;
+
+-- =============================================
+-- CORE TABLES
 -- =============================================
 
--- Create tables
+-- Users table for authentication and authorization
+CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    email TEXT NOT NULL UNIQUE,
+    username TEXT NOT NULL UNIQUE,
+    password TEXT NOT NULL,
+    first_name TEXT NOT NULL,
+    last_name TEXT NOT NULL,
+    dob TEXT,
+    role TEXT NOT NULL DEFAULT 'student' CHECK(role IN ('admin', 'teacher', 'parent', 'student')),
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Classes/Courses table
+CREATE TABLE IF NOT EXISTS classes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    teacher_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Students table (uses TEXT id for flexibility with external IDs)
 CREATE TABLE IF NOT EXISTS students (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL UNIQUE,
-    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    first_name TEXT,
+    last_name TEXT,
+    class_id INTEGER REFERENCES classes(id) ON DELETE SET NULL,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS attendance_sessions (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    student_id INTEGER NOT NULL,
-    session_date TEXT NOT NULL,
-    entry_time TEXT NOT NULL,
-    exit_time TEXT,
-    duration_minutes INTEGER,
-    status TEXT DEFAULT 'present' CHECK(status IN ('present', 'left')),
-    attendance_status TEXT DEFAULT 'on_time' CHECK(attendance_status IN ('on_time', 'late', 'absent', 'excused', 'left_early')),
-    late_minutes INTEGER DEFAULT 0,
-    reason_for_scoring TEXT,
-    session_number INTEGER,
-    attendance_score REAL,
-    FOREIGN KEY (student_id) REFERENCES students(id)
+-- =============================================
+-- RELATIONSHIP TABLES
+-- =============================================
+
+-- Parent-Student relationship (many-to-many)
+CREATE TABLE IF NOT EXISTS parent_student (
+    parent_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    student_id TEXT NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (parent_id, student_id)
 );
 
+-- =============================================
+-- ATTENDANCE TABLES
+-- =============================================
 
-
+-- Class schedule (defines session times)
 CREATE TABLE IF NOT EXISTS class_schedule (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     session_number INTEGER NOT NULL UNIQUE,
@@ -33,6 +66,7 @@ CREATE TABLE IF NOT EXISTS class_schedule (
     end_time TEXT NOT NULL
 );
 
+-- Semester configuration
 CREATE TABLE IF NOT EXISTS semester_config (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     semester_name TEXT NOT NULL,
@@ -40,155 +74,226 @@ CREATE TABLE IF NOT EXISTS semester_config (
     end_date TEXT NOT NULL,
     total_sessions INTEGER DEFAULT 0,
     is_active INTEGER DEFAULT 1,
-    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- UPDATED: Student circumstances with session-specific excuses
+-- Attendance sessions (main attendance records)
+CREATE TABLE IF NOT EXISTS attendance_sessions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    student_id TEXT NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+    session_date TEXT NOT NULL,
+    session_number INTEGER,
+    entry_time TEXT,
+    exit_time TEXT,
+    duration_minutes INTEGER,
+    status TEXT DEFAULT 'present' CHECK(status IN ('present', 'left')),
+    attendance_status TEXT DEFAULT 'on_time' CHECK(attendance_status IN ('on_time', 'late', 'absent', 'excused', 'left_early')),
+    late_minutes INTEGER DEFAULT 0,
+    attendance_score REAL,
+    reason_for_scoring TEXT,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Student circumstances (excuses, special conditions)
 CREATE TABLE IF NOT EXISTS student_circumstances (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    student_id INTEGER,
+    student_id TEXT NOT NULL REFERENCES students(id) ON DELETE CASCADE,
     circumstance_type TEXT NOT NULL,
     description TEXT,
     start_date TEXT,
     end_date TEXT,
-    -- NEW: Session-specific excuses
-    session_numbers TEXT, -- Comma-separated session numbers: '1,3,5' or 'all' for all sessions
+    session_numbers TEXT,  -- Comma-separated: '1,3,5' or 'all'
     excuse_type TEXT CHECK(excuse_type IN ('full', 'partial', 'late_arrival')),
     is_active INTEGER DEFAULT 1,
-    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (student_id) REFERENCES students (id)
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- Create index (from your original)
-CREATE INDEX IF NOT EXISTS idx_date_status ON attendance_sessions (session_date, status);
+-- =============================================
+-- COMMUNICATION TABLES
+-- =============================================
 
--- Insert class schedule (YOUR ORIGINAL TIMES)
-INSERT OR IGNORE INTO class_schedule (session_number, start_time, end_time) VALUES
-(1, '07:20:00', '08:05:00'),
-(2, '08:10:00', '08:55:00'),
-(3, '09:00:00', '09:45:00'),
-(4, '09:55:00', '10:40:00'),
-(5, '10:45:00', '11:30:00');
+-- Tickets for parent-teacher communication
+CREATE TABLE IF NOT EXISTS tickets (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    parent_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    student_id TEXT NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+    teacher_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    class_id INTEGER NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
+    status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending', 'approved', 'rejected')),
+    type TEXT NOT NULL,
+    reason TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
 
--- Insert semester configuration
-INSERT OR IGNORE INTO semester_config (semester_name, start_date, end_date, total_sessions, is_active) VALUES
-('Fall 2024', '2024-09-01', '2024-12-20', 90, 1),
-('Spring 2024', '2024-01-15', '2024-05-15', 85, 0);
+-- =============================================
+-- FACE RECOGNITION TABLES
+-- =============================================
 
--- Insert ALL 100 students (YOUR ORIGINAL LIST)
-INSERT OR IGNORE INTO students (name) VALUES
-('John Smith'),('Emily Johnson'),('Michael Brown'),('Sarah Davis'),('David Wilson'),
-('Jennifer Miller'),('Christopher Moore'),('Jessica Taylor'),('Matthew Anderson'),('Ashley Thomas'),
-('James Jackson'),('Elizabeth White'),('Daniel Harris'),('Michelle Martin'),('Robert Thompson'),
-('Laura Garcia'),('William Martinez'),('Amanda Robinson'),('Joseph Clark'),('Stephanie Rodriguez'),
-('Thomas Lewis'),('Rebecca Lee'),('Charles Walker'),('Patricia Hall'),('Mark Allen'),
-('Linda Young'),('Donald King'),('Barbara Wright'),('Steven Scott'),('Margaret Green'),
-('Paul Baker'),('Nancy Adams'),('George Nelson'),('Betty Hill'),('Kenneth Ramirez'),
-('Dorothy Campbell'),('Edward Mitchell'),('Helen Roberts'),('Brian Carter'),('Deborah Phillips'),
-('Ronald Evans'),('Sharon Turner'),('Jason Torres'),('Carol Parker'),('Kevin Collins'),
-('Ruth Edwards'),('Timothy Stewart'),('Anna Flores'),('Brian Morris'),('Catherine Nguyen'),
-('Steven Murphy'),('Pamela Rivera'),('Jeffrey Cook'),('Martha Rogers'),('Frank Morgan'),
-('Teresa Peterson'),('Gary Cooper'),('Carolyn Reed'),('Larry Bailey'),('Jacqueline Bell'),
-('Scott Kelly'),('Diane Howard'),('Eric Ward'),('Janet Cox'),('Stephen Diaz'),
-('Heather Richardson'),('Raymond Wood'),('Emma Watson'),('Patrick Brooks'),('Christine Sanders'),
-('Gregory Price'),('Rachel Bennett'),('Jeremy Barnes'),('Victoria Fisher'),('Dennis Henderson'),
-('Judith Coleman'),('Walter Gray'),('Brenda James'),('Harold Reyes'),('Megan Hughes'),
-('Arthur Foster'),('Cheryl Butler'),('Zachary Simmons'),('Evelyn Russell'),('Henry Griffin'),
-('Joan Diaz'),('Carl Hayes'),('Andrea Myers'),('Jack Ford'),('Rose Hamilton'),
-('Tyler Graham'),('Nicole Sullivan'),('Aaron Wallace'),('Katherine Woods'),('Billy Cole'),
-('Lori West'),('Bruce Jordan'),('Diana Owens'),('Ethan Reynolds'),('Marie Fisher');
+-- Unregistered faces (pending assignment to students)
+CREATE TABLE IF NOT EXISTS unregistered_faces (
+    face_id TEXT PRIMARY KEY,
+    class_id INTEGER NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
 
--- UPDATED: Insert student circumstances with session-specific excuses
-INSERT OR IGNORE INTO student_circumstances (student_id, circumstance_type, description, start_date, end_date, session_numbers, excuse_type) VALUES
-(1, 'transportation', 'Bus route from north side often runs late in morning traffic', '2024-09-01', '2024-12-20', '1', 'late_arrival'),
-(3, 'medical', 'Weekly allergy shots on Tuesday mornings', '2024-09-01', '2024-11-15', '1,2', 'late_arrival'),
-(5, 'transportation', 'Parent works early shift, sometimes late dropping off', '2024-09-01', '2024-12-20', '1', 'late_arrival'),
-(7, 'family', 'Responsible for walking younger sibling to elementary school', '2024-09-01', '2024-12-20', '1', 'late_arrival'),
-(12, 'extracurricular', 'Basketball practice until 6pm, sometimes oversleeps', '2024-09-01', '2024-12-20', '1', 'late_arrival'),
-(15, 'medical', 'Physical therapy for soccer injury twice a week', '2024-09-01', '2024-10-31', '3,5', 'partial'),
-(18, 'transportation', 'Relies on city bus with inconsistent morning schedule', '2024-09-01', '2024-12-20', 'all', 'late_arrival'),
-(22, 'family', 'Helps get younger siblings ready for school', '2024-09-01', '2024-12-20', '1', 'late_arrival'),
-(25, 'medical', 'Asthma condition, needs extra time between classes', '2024-09-01', '2024-12-20', 'all', 'late_arrival'),
-(30, 'transportation', 'Bikes to school, affected by rainy weather', '2024-09-01', '2024-12-20', 'all', 'late_arrival'),
-(35, 'work', 'Weekend job at grocery store, sometimes affects Monday energy', '2024-09-01', '2024-12-20', '1', 'late_arrival'),
-(42, 'family', 'Helps grandmother with morning medication before school', '2024-09-01', '2024-10-15', '1,2', 'late_arrival'),
-(47, 'transportation', 'Carpool with neighbors, dependent on their schedule', '2024-09-01', '2024-12-20', 'all', 'late_arrival'),
-(53, 'medical', 'ADHD medication adjustment period', '2024-09-01', '2024-10-15', '1', 'late_arrival'),
-(58, 'work', 'Morning paper route before school', '2024-09-01', '2024-12-20', '1', 'late_arrival'),
-(62, 'transportation', 'Family shares one car with multiple students', '2024-09-01', '2024-12-20', 'all', 'late_arrival'),
-(67, 'family', 'Babysits neighbor''s kids until their parents leave for work', '2024-09-01', '2024-12-20', '1', 'late_arrival'),
-(73, 'medical', 'New glasses prescription, adjusting to vision changes', '2024-09-01', '2024-10-31', '1,2', 'late_arrival'),
-(78, 'transportation', 'Train to school from next town over', '2024-09-01', '2024-12-20', 'all', 'late_arrival'),
-(85, 'extracurricular', 'Student council morning meetings run long sometimes', '2024-09-01', '2024-12-20', '1', 'late_arrival'),
-(92, 'family', 'Helps at family coffee shop before school', '2024-09-01', '2024-12-20', '1', 'late_arrival'),
-(97, 'medical', 'Recovering from broken leg, slower movement between classes', '2024-09-01', '2024-11-15', 'all', 'late_arrival'),
-(8, 'extracurricular', 'Marching band practice before school on Fridays', '2024-09-01', '2024-12-20', '1', 'partial'),
-(21, 'academic', 'Peer tutoring in math lab during 4th period', '2024-09-01', '2024-12-20', '4', 'partial'),
-(34, 'medical', 'Orthodontist appointments monthly', '2024-09-01', '2024-12-20', '3,4', 'late_arrival'),
-(45, 'family', 'Takes family dog to vet appointments monthly', '2024-09-01', '2024-12-20', '2,3', 'partial'),
-(56, 'transportation', 'Learning to drive, parent supervision required', '2024-09-01', '2024-10-31', 'all', 'late_arrival'),
-(68, 'academic', 'College application counseling during lunch period', '2024-09-01', '2024-11-30', '5', 'partial'),
-(79, 'medical', 'Seasonal allergies during pollen season', '2024-03-01', '2024-05-31', 'all', 'late_arrival'),
-(88, 'extracurricular', 'Science Olympiad team competitions monthly', '2024-09-01', '2024-12-20', '3,4,5', 'full'),
-(99, 'family', 'Parent-teacher conference appointments', '2024-09-01', '2024-12-20', '2,3', 'partial');
+-- =============================================
+-- ANALYTICS TABLES
+-- =============================================
 
--- Insert sample attendance data for last 7 days WITH session_number
-INSERT OR IGNORE INTO attendance_sessions (student_id, session_date, entry_time, session_number, duration_minutes, attendance_status, late_minutes)
-SELECT 
-    s.id as student_id,
-    date('now', '-' || (abs(random()) % 7) || ' days') as session_date,
-    time('07:20:00', '+' || (abs(random()) % 45) || ' minutes') as entry_time,
-    CASE 
-        WHEN time('07:20:00', '+' || (abs(random()) % 45) || ' minutes') BETWEEN '07:20:00' AND '08:05:00' THEN 1
-        WHEN time('07:20:00', '+' || (abs(random()) % 45) || ' minutes') BETWEEN '08:10:00' AND '08:55:00' THEN 2
-        WHEN time('07:20:00', '+' || (abs(random()) % 45) || ' minutes') BETWEEN '09:00:00' AND '09:45:00' THEN 3
-        WHEN time('07:20:00', '+' || (abs(random()) % 45) || ' minutes') BETWEEN '09:55:00' AND '10:40:00' THEN 4
-        WHEN time('07:20:00', '+' || (abs(random()) % 45) || ' minutes') BETWEEN '10:45:00' AND '11:30:00' THEN 5
-        ELSE 1
-    END as session_number,
-    abs(random()) % 20 + 40 as duration_minutes,
-    CASE abs(random()) % 10
-        WHEN 0 THEN 'absent'
-        WHEN 1 THEN 'late'
-        WHEN 2 THEN 'late'
-        ELSE 'on_time'
-    END as attendance_status,
-    CASE 
-        WHEN abs(random()) % 4 = 0 THEN abs(random()) % 30
-        ELSE 0
-    END as late_minutes
-FROM students s
-WHERE abs(random()) % 10 < 8
-LIMIT 500;
-
-
-
--- Print summary
-SELECT '✅ Database initialized successfully!' as status;
-SELECT 'Students: ' || COUNT(*) FROM students;
-SELECT 'Student Circumstances: ' || COUNT(*) FROM student_circumstances;
-SELECT 'Attendance sessions: ' || COUNT(*) FROM attendance_sessions;
-
+-- Daily attendance insights (for reporting)
 CREATE TABLE IF NOT EXISTS student_daily_insights (
-    id INTEGER PRIMARY KEY,
-    date TEXT,
-    student_id INTEGER,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    date TEXT NOT NULL,
+    student_id TEXT NOT NULL REFERENCES students(id) ON DELETE CASCADE,
     student_name TEXT,
-    sessions_attended INTEGER,
-    sessions_late INTEGER,
-    full_day_absent BOOLEAN,
-    has_circumstances BOOLEAN,
-    priority_score INTEGER
+    sessions_attended INTEGER DEFAULT 0,
+    sessions_late INTEGER DEFAULT 0,
+    full_day_absent INTEGER DEFAULT 0,
+    has_circumstances INTEGER DEFAULT 0,
+    priority_score INTEGER DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Agent analysis log (for AI-driven insights)
 CREATE TABLE IF NOT EXISTS agent_analysis_log (
-    id INTEGER PRIMARY KEY,
-    analysis_date TEXT,
-    student_id INTEGER,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    analysis_date TEXT NOT NULL,
+    student_id TEXT NOT NULL REFERENCES students(id) ON DELETE CASCADE,
     student_name TEXT,
     alert_level TEXT,
     reason TEXT,
     recommendation TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (student_id) REFERENCES students(id)
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+-- =============================================
+-- INDEXES
+-- =============================================
+
+-- User indexes
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
+
+-- Class indexes
+CREATE INDEX IF NOT EXISTS idx_classes_teacher ON classes(teacher_id);
+
+-- Student indexes
+CREATE INDEX IF NOT EXISTS idx_students_class ON students(class_id);
+CREATE INDEX IF NOT EXISTS idx_students_name ON students(name);
+
+-- Attendance indexes
+CREATE INDEX IF NOT EXISTS idx_attendance_student ON attendance_sessions(student_id);
+CREATE INDEX IF NOT EXISTS idx_attendance_date ON attendance_sessions(session_date);
+CREATE INDEX IF NOT EXISTS idx_attendance_date_status ON attendance_sessions(session_date, attendance_status);
+CREATE INDEX IF NOT EXISTS idx_attendance_student_date ON attendance_sessions(student_id, session_date);
+
+-- Ticket indexes
+CREATE INDEX IF NOT EXISTS idx_tickets_parent ON tickets(parent_id);
+CREATE INDEX IF NOT EXISTS idx_tickets_teacher ON tickets(teacher_id);
+CREATE INDEX IF NOT EXISTS idx_tickets_student ON tickets(student_id);
+CREATE INDEX IF NOT EXISTS idx_tickets_status ON tickets(status);
+
+-- Circumstances indexes
+CREATE INDEX IF NOT EXISTS idx_circumstances_student ON student_circumstances(student_id);
+CREATE INDEX IF NOT EXISTS idx_circumstances_active ON student_circumstances(is_active);
+
+-- Analytics indexes
+CREATE INDEX IF NOT EXISTS idx_insights_date ON student_daily_insights(date);
+CREATE INDEX IF NOT EXISTS idx_insights_student ON student_daily_insights(student_id);
+CREATE INDEX IF NOT EXISTS idx_analysis_date ON agent_analysis_log(analysis_date);
+
+-- =============================================
+-- SEED DATA
+-- =============================================
+
+-- Insert class schedule (5 sessions per day)
+INSERT OR IGNORE INTO class_schedule (session_number, start_time, end_time) VALUES
+    (1, '07:20:00', '08:05:00'),
+    (2, '08:10:00', '08:55:00'),
+    (3, '09:00:00', '09:45:00'),
+    (4, '09:55:00', '10:40:00'),
+    (5, '10:45:00', '11:30:00');
+
+-- Insert semester configuration
+INSERT OR IGNORE INTO semester_config (semester_name, start_date, end_date, total_sessions, is_active) VALUES
+    ('Fall 2024', '2024-09-01', '2024-12-20', 90, 1),
+    ('Spring 2025', '2025-01-15', '2025-05-15', 85, 0);
+
+-- Insert default class
+INSERT OR IGNORE INTO classes (id, name) VALUES (1, 'Default Class');
+
+-- Insert sample students
+INSERT OR IGNORE INTO students (id, name, first_name, last_name, class_id) VALUES
+    ('1', 'John Smith', 'John', 'Smith', 1),
+    ('2', 'Emily Johnson', 'Emily', 'Johnson', 1),
+    ('3', 'Michael Brown', 'Michael', 'Brown', 1),
+    ('4', 'Sarah Davis', 'Sarah', 'Davis', 1),
+    ('5', 'David Wilson', 'David', 'Wilson', 1),
+    ('6', 'Jennifer Miller', 'Jennifer', 'Miller', 1),
+    ('7', 'Christopher Moore', 'Christopher', 'Moore', 1),
+    ('8', 'Jessica Taylor', 'Jessica', 'Taylor', 1),
+    ('9', 'Matthew Anderson', 'Matthew', 'Anderson', 1),
+    ('10', 'Ashley Thomas', 'Ashley', 'Thomas', 1),
+    ('11', 'James Jackson', 'James', 'Jackson', 1),
+    ('12', 'Elizabeth White', 'Elizabeth', 'White', 1),
+    ('13', 'Daniel Harris', 'Daniel', 'Harris', 1),
+    ('14', 'Michelle Martin', 'Michelle', 'Martin', 1),
+    ('15', 'Robert Thompson', 'Robert', 'Thompson', 1),
+    ('16', 'Laura Garcia', 'Laura', 'Garcia', 1),
+    ('17', 'William Martinez', 'William', 'Martinez', 1),
+    ('18', 'Amanda Robinson', 'Amanda', 'Robinson', 1),
+    ('19', 'Joseph Clark', 'Joseph', 'Clark', 1),
+    ('20', 'Stephanie Rodriguez', 'Stephanie', 'Rodriguez', 1),
+    ('21', 'Thomas Lewis', 'Thomas', 'Lewis', 1),
+    ('22', 'Rebecca Lee', 'Rebecca', 'Lee', 1),
+    ('23', 'Charles Walker', 'Charles', 'Walker', 1),
+    ('24', 'Patricia Hall', 'Patricia', 'Hall', 1),
+    ('25', 'Mark Allen', 'Mark', 'Allen', 1),
+    ('26', 'Linda Young', 'Linda', 'Young', 1),
+    ('27', 'Donald King', 'Donald', 'King', 1),
+    ('28', 'Barbara Wright', 'Barbara', 'Wright', 1),
+    ('29', 'Steven Scott', 'Steven', 'Scott', 1),
+    ('30', 'Margaret Green', 'Margaret', 'Green', 1),
+    ('31', 'Paul Baker', 'Paul', 'Baker', 1),
+    ('32', 'Nancy Adams', 'Nancy', 'Adams', 1),
+    ('33', 'George Nelson', 'George', 'Nelson', 1),
+    ('34', 'Betty Hill', 'Betty', 'Hill', 1),
+    ('35', 'Kenneth Ramirez', 'Kenneth', 'Ramirez', 1),
+    ('36', 'Dorothy Campbell', 'Dorothy', 'Campbell', 1),
+    ('37', 'Edward Mitchell', 'Edward', 'Mitchell', 1),
+    ('38', 'Helen Roberts', 'Helen', 'Roberts', 1),
+    ('39', 'Brian Carter', 'Brian', 'Carter', 1),
+    ('40', 'Deborah Phillips', 'Deborah', 'Phillips', 1),
+    ('41', 'Ronald Evans', 'Ronald', 'Evans', 1),
+    ('42', 'Sharon Turner', 'Sharon', 'Turner', 1),
+    ('43', 'Jason Torres', 'Jason', 'Torres', 1),
+    ('44', 'Carol Parker', 'Carol', 'Parker', 1),
+    ('45', 'Kevin Collins', 'Kevin', 'Collins', 1),
+    ('46', 'Ruth Edwards', 'Ruth', 'Edwards', 1),
+    ('47', 'Timothy Stewart', 'Timothy', 'Stewart', 1),
+    ('48', 'Anna Flores', 'Anna', 'Flores', 1),
+    ('49', 'Brian Morris', 'Brian', 'Morris', 1),
+    ('50', 'Catherine Nguyen', 'Catherine', 'Nguyen', 1);
+
+-- Insert sample student circumstances
+INSERT OR IGNORE INTO student_circumstances (student_id, circumstance_type, description, start_date, end_date, session_numbers, excuse_type) VALUES
+    ('1', 'transportation', 'Bus route often runs late in morning traffic', '2024-09-01', '2024-12-20', '1', 'late_arrival'),
+    ('3', 'medical', 'Weekly allergy shots on Tuesday mornings', '2024-09-01', '2024-11-15', '1,2', 'late_arrival'),
+    ('5', 'transportation', 'Parent works early shift, sometimes late dropping off', '2024-09-01', '2024-12-20', '1', 'late_arrival'),
+    ('7', 'family', 'Responsible for walking younger sibling to school', '2024-09-01', '2024-12-20', '1', 'late_arrival'),
+    ('12', 'extracurricular', 'Basketball practice until 6pm, sometimes oversleeps', '2024-09-01', '2024-12-20', '1', 'late_arrival'),
+    ('15', 'medical', 'Physical therapy for soccer injury twice a week', '2024-09-01', '2024-10-31', '3,5', 'partial'),
+    ('18', 'transportation', 'Relies on city bus with inconsistent schedule', '2024-09-01', '2024-12-20', 'all', 'late_arrival'),
+    ('22', 'family', 'Helps get younger siblings ready for school', '2024-09-01', '2024-12-20', '1', 'late_arrival'),
+    ('25', 'medical', 'Asthma condition, needs extra time between classes', '2024-09-01', '2024-12-20', 'all', 'late_arrival'),
+    ('30', 'transportation', 'Bikes to school, affected by weather', '2024-09-01', '2024-12-20', 'all', 'late_arrival');
+
+-- =============================================
+-- VERIFICATION
+-- =============================================
+
+SELECT '✅ Database schema initialized successfully!' as status;
+SELECT 'Tables created: ' || COUNT(*) as info FROM sqlite_master WHERE type='table';
+SELECT 'Indexes created: ' || COUNT(*) as info FROM sqlite_master WHERE type='index' AND name NOT LIKE 'sqlite_%';
+SELECT 'Students: ' || COUNT(*) as info FROM students;

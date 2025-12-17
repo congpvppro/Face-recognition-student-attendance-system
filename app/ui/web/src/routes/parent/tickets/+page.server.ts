@@ -1,15 +1,21 @@
 import { fail } from "@sveltejs/kit";
-import { api } from "$lib/server/http";
+import { api, tsApi } from "$lib/server/http";
 import type { Actions, PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async (event) => {
-  const client = api(event);
+  const userClient = api(event);
+  const tsClient = tsApi(event);
+  const token = event.locals.token;
+  const userId = event.locals.user?.id;
+
   let students = [];
   let tickets = [];
 
   try {
-    const studentRes = await client
-      .get("api/users/me/students")
+    const studentRes = await userClient
+      .get(`api/users/${userId}/students`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      })
       .json<{ students: any[] }>();
     students = studentRes.students;
   } catch (e) {
@@ -17,7 +23,7 @@ export const load: PageServerLoad = async (event) => {
   }
 
   try {
-    const ticketRes = await client
+    const ticketRes = await tsClient
       .get("api/tickets")
       .json<{ tickets: any[] }>();
     tickets = ticketRes.tickets;
@@ -27,7 +33,7 @@ export const load: PageServerLoad = async (event) => {
 
   // Join class name into students
   try {
-    const classes = await client.get("api/classes").json<any[]>();
+    const classes = await tsClient.get("api/classes").json<any[]>();
     students = students.map((s) => {
       const studentClass = classes.find((c) => c.id === s.class_id);
       return { ...s, class_name: studentClass?.name || "N/A" };
@@ -42,7 +48,7 @@ export const load: PageServerLoad = async (event) => {
 export const actions: Actions = {
   createTicket: async (event) => {
     const fd = await event.request.formData();
-    const client = api(event);
+    const client = tsApi(event);
 
     const student_id = String(fd.get("student_id"));
     const class_id = Number(fd.get("class_id"));

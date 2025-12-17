@@ -9,11 +9,13 @@ export const load: PageServerLoad = async (event) => {
   }
 
   let students = [];
-  if (locals.user.role === "parent") {
+  if (locals.user.role === "parent" && locals.token) {
     const client = api(event);
     try {
       const response = await client
-        .get("api/users/me/students")
+        .get(`api/users/${locals.user.id}/students`, {
+          headers: { Authorization: `Bearer ${locals.token}` },
+        })
         .json<{ students: any[] }>();
       students = response.students;
     } catch (e) {

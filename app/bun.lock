@@ -34,6 +34,7 @@
         "@fontsource-variable/montserrat": "^5.2.8",
         "@fontsource-variable/raleway": "^5.2.8",
         "@fontsource-variable/work-sans": "^5.2.8",
+        "@fontsource/cormorant-sc": "^5.2.8",
         "ky": "^1.14.0",
         "lucide-svelte": "^0.553.0",
         "tough-cookie": "^6.0.0",

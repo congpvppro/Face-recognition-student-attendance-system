@@ -17,3 +17,5 @@ langchain-core
 langchain-groq
 openpyxl
 sendgrid
+pyjwt
+pydantic[email]

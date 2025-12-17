@@ -1,13 +1,9 @@
 import Database from "bun:sqlite";
-import { existsSync } from "fs";
 import { NotFoundError } from "@common/errors/httpErrors";
-import {
-  ATTENDANCE_DB_PATHS,
-  USERS_DB_PATHS,
-  type AttendanceStatus,
-} from "@common/config";
+import { type AttendanceStatus } from "@common/config";
+import { db, dbPath } from "@user/sqlite";
 
-// Attendance record type from Python DB
+// Attendance record type from unified DB
 export interface AttendanceRecord {
   student_id: string;
   session_date: string;
@@ -19,50 +15,11 @@ export interface AttendanceRecord {
 }
 
 /**
- * Resolves the first existing path from a list of possible paths
- */
-function resolveDbPath(possiblePaths: string[], defaultPath: string): string {
-  for (const p of possiblePaths) {
-    if (existsSync(p)) {
-      return p;
-    }
-  }
-  console.warn(
-    `Could not find DB in common paths, defaulting to: ${defaultPath}`,
-  );
-  return defaultPath;
-}
-
-/**
- * Service to connect to the external Python agent's attendance database
+ * Service for attendance operations using the unified database
  */
 export class ExtAttendanceService {
-  private db: Database;
-  private dbPath: string;
-
   constructor() {
-    this.dbPath = resolveDbPath(
-      ATTENDANCE_DB_PATHS,
-      "face-reidentification/agent/attendance.db",
-    );
-
-    try {
-      this.db = new Database(this.dbPath, { readonly: true });
-    } catch (e) {
-      console.error(
-        `Failed to connect to external attendance database at ${this.dbPath}`,
-        e,
-      );
-      throw new Error("External attendance database not found.");
-    }
-  }
-
-  /**
-   * Get the main users database connection
-   */
-  private getMainDb(): Database {
-    const mainDbPath = resolveDbPath(USERS_DB_PATHS, "users.sqlite");
-    return new Database(mainDbPath, { readonly: true });
+    // Uses the unified database from sqlite.ts
   }
 
   /**
@@ -72,49 +29,21 @@ export class ExtAttendanceService {
     classId: number,
     date: string,
   ): AttendanceRecord[] {
-    const mainDb = this.getMainDb();
+    const studentIdsQuery = db.query<{ id: string }, { $class_id: number }>(
+      "SELECT id FROM students WHERE class_id = $class_id",
+    );
+    const studentsInClass = studentIdsQuery.all({ $class_id: classId });
+    const studentIds = studentsInClass.map((s) => s.id);
 
-    try {
-      const studentIdsQuery = mainDb.query<
-        { id: string },
-        { $class_id: number }
-      >("SELECT id FROM students WHERE class_id = $class_id");
-      const studentsInClass = studentIdsQuery.all({ $class_id: classId });
-      const studentIds = studentsInClass.map((s) => s.id);
-
-      if (studentIds.length === 0) {
-        return [];
-      }
-
-      // The Python DB uses 'name' field which corresponds to student ID from main DB
-      const placeholders = studentIds.map(() => "?").join(",");
-      const query = this.db.query<AttendanceRecord, unknown[]>(`
-        SELECT
-          s.name as student_id,
-          a.session_date,
-          a.entry_time,
-          a.exit_time,
-          a.attendance_status,
-          a.late_minutes,
-          a.session_number
-        FROM attendance_sessions a
-        JOIN students s ON a.student_id = s.id
-        WHERE a.session_date = ? AND s.name IN (${placeholders})
-      `);
-
-      return query.all(date, ...studentIds);
-    } finally {
-      mainDb.close();
+    if (studentIds.length === 0) {
+      return [];
     }
-  }
 
-  /**
-   * Get all attendance records for a specific student
-   */
-  public getAttendanceByStudent(studentId: string): AttendanceRecord[] {
-    const query = this.db.query<AttendanceRecord, { $studentId: string }>(`
+    // Query attendance using student IDs
+    const placeholders = studentIds.map(() => "?").join(",");
+    const query = db.query<AttendanceRecord, unknown[]>(`
       SELECT
-        s.name as student_id,
+        s.id as student_id,
         a.session_date,
         a.entry_time,
         a.exit_time,
@@ -122,8 +51,29 @@ export class ExtAttendanceService {
         a.late_minutes,
         a.session_number
       FROM attendance_sessions a
-      JOIN students s ON a.student_id = s.id
-      WHERE s.name = $studentId
+      JOIN students s ON CAST(a.student_id AS TEXT) = s.id
+      WHERE a.session_date = ? AND s.id IN (${placeholders})
+    `);
+
+    return query.all(date, ...studentIds);
+  }
+
+  /**
+   * Get all attendance records for a specific student
+   */
+  public getAttendanceByStudent(studentId: string): AttendanceRecord[] {
+    const query = db.query<AttendanceRecord, { $studentId: string }>(`
+      SELECT
+        s.id as student_id,
+        a.session_date,
+        a.entry_time,
+        a.exit_time,
+        a.attendance_status,
+        a.late_minutes,
+        a.session_number
+      FROM attendance_sessions a
+      JOIN students s ON CAST(a.student_id AS TEXT) = s.id
+      WHERE s.id = $studentId
       ORDER BY a.session_date DESC, a.session_number ASC
     `);
 
@@ -131,31 +81,20 @@ export class ExtAttendanceService {
   }
 
   /**
-   * Get or create a student in the Python DB by name/ID
+   * Get student by ID, returns the internal numeric ID for attendance_sessions
    */
-  private getOrCreateStudent(
-    writeDb: Database,
-    studentId: string,
-  ): { id: number } {
-    // Try to find existing student
-    const studentQuery = writeDb.query<{ id: number }, { $name: string }>(
-      "SELECT id FROM students WHERE name = $name",
+  private getStudentInternalId(studentId: string): number {
+    // First try to find by string ID
+    const studentQuery = db.query<{ rowid: number }, { $id: string }>(
+      "SELECT rowid FROM students WHERE id = $id",
     );
-    let student = studentQuery.get({ $name: studentId });
+    const student = studentQuery.get({ $id: studentId });
 
-    if (!student) {
-      // Create the student in Python DB
-      const insertQuery = writeDb.query<{ id: number }, { $name: string }>(
-        "INSERT INTO students (name) VALUES ($name) RETURNING id",
-      );
-      student = insertQuery.get({ $name: studentId });
-
-      if (!student) {
-        throw new Error(`Failed to create student ${studentId} in external DB`);
-      }
+    if (student) {
+      return student.rowid;
     }
 
-    return student;
+    throw new NotFoundError(`Student with ID ${studentId} not found`);
   }
 
   /**
@@ -168,30 +107,35 @@ export class ExtAttendanceService {
     session: number,
     status: string,
   ): { message: string } {
-    // Open a write connection for this operation
-    const writeDb = new Database(this.dbPath);
-
     try {
-      // Get or create student in Python DB
-      const student = this.getOrCreateStudent(writeDb, studentId);
+      // Get the student's internal ID (rowid) for attendance_sessions table
+      // The attendance_sessions table uses INTEGER student_id that matches rowid
+      const studentQuery = db.query<{ id: string }, { $id: string }>(
+        "SELECT id FROM students WHERE id = $id",
+      );
+      const student = studentQuery.get({ $id: studentId });
+
+      if (!student) {
+        throw new NotFoundError(`Student with ID ${studentId} not found`);
+      }
 
       // Check if attendance record exists
-      const existingQuery = writeDb.query<
+      const existingQuery = db.query<
         { id: number },
-        { $student_id: number; $date: string; $session: number }
+        { $student_id: string; $date: string; $session: number }
       >(`
         SELECT id FROM attendance_sessions
-        WHERE student_id = $student_id AND session_date = $date AND session_number = $session
+        WHERE CAST(student_id AS TEXT) = $student_id AND session_date = $date AND session_number = $session
       `);
       const existing = existingQuery.get({
-        $student_id: student.id,
+        $student_id: studentId,
         $date: date,
         $session: session,
       });
 
       if (existing) {
         // Update existing record
-        const updateQuery = writeDb.query(`
+        const updateQuery = db.query(`
           UPDATE attendance_sessions
           SET attendance_status = $status
           WHERE id = $id
@@ -201,18 +145,18 @@ export class ExtAttendanceService {
           $id: existing.id,
         });
       } else {
-        // Insert new record
-        const insertQuery = writeDb.query(`
+        // Insert new record - use the string student ID cast to integer
+        const insertQuery = db.query(`
           INSERT INTO attendance_sessions (
             student_id, session_date, session_number,
             entry_time, attendance_status, late_minutes
           ) VALUES (
-            $student_id, $date, $session,
+            CAST($student_id AS INTEGER), $date, $session,
             $entry_time, $status, $late_minutes
           )
         `);
         insertQuery.run({
-          $student_id: student.id,
+          $student_id: studentId,
           $date: date,
           $session: session,
           $entry_time:
@@ -229,17 +173,8 @@ export class ExtAttendanceService {
       if (e instanceof NotFoundError) {
         throw e;
       }
-      console.error("Failed to update external attendance DB", e);
-      throw new Error("Failed to update external attendance record.");
-    } finally {
-      writeDb.close();
+      console.error("Failed to update attendance DB", e);
+      throw new Error("Failed to update attendance record.");
     }
-  }
-
-  /**
-   * Close the database connection
-   */
-  public close(): void {
-    this.db.close();
   }
 }

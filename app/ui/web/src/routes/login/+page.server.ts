@@ -25,9 +25,13 @@ export const actions: Actions = {
     let redirectUrl = "/";
 
     try {
+      // Call Python FastAPI for authentication
       const response = await client
         .post("api/auth/login", { json: { email, password } })
-        .json<{ token: string }>();
+        .json<{
+          token: string;
+          user: { id: number; email: string; role: string };
+        }>();
 
       event.cookies.set("auth", response.token, {
         path: "/",
@@ -36,11 +40,8 @@ export const actions: Actions = {
         maxAge: 60 * 60 * 24 * 7,
       });
 
-      const { user } = await client
-        .get("api/users/me", {
-          headers: { Authorization: `Bearer ${response.token}` },
-        })
-        .json<{ user: { role: string } }>();
+      // User info is already in the login response from Python API
+      const user = response.user;
 
       if (user.role === "admin") redirectUrl = "/admin/statistics";
       else if (user.role === "teacher") redirectUrl = "/teacher/classes";
@@ -50,6 +51,7 @@ export const actions: Actions = {
         const body = await e.response.json().catch(() => null);
         return fail(e.response.status ?? 400, {
           message:
+            body?.detail ??
             body?.message ??
             "Thông tin đăng nhập không hợp lệ hoặc lỗi máy chủ.",
         });
