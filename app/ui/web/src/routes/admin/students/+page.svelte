@@ -17,10 +17,12 @@
 
   type Student = {
     id: string;
-    first_name: string;
-    last_name: string;
+    name: string;
+    first_name: string | null;
+    last_name: string | null;
     class_id: number;
     class_name: string | null;
+    face_registered: number | null;
   };
 
   type ClassData = {
@@ -38,8 +40,7 @@
   // Search and filter state
   let searchQuery = $state("");
   let selectedClassFilter = $state<number | "all">("all");
-  let showAddForm = $state(false);
-
+  let addDialog: HTMLDialogElement;
   let editDialog: HTMLDialogElement;
   let deleteDialog: HTMLDialogElement;
 
@@ -83,6 +84,14 @@
     deleteDialog?.showModal();
   }
 
+  // Helper to get display name
+  function getDisplayName(student: Student): string {
+    if (student.first_name && student.last_name) {
+      return `${student.first_name} ${student.last_name}`;
+    }
+    return student.name || student.id;
+  }
+
   // Filtered students based on search and class filter
   let filteredStudents = $derived.by(() => {
     let result = data.students;
@@ -98,9 +107,10 @@
       result = result.filter(
         (s) =>
           s.id.toLowerCase().includes(query) ||
-          s.first_name.toLowerCase().includes(query) ||
-          s.last_name.toLowerCase().includes(query) ||
-          `${s.first_name} ${s.last_name}`.toLowerCase().includes(query),
+          (s.name && s.name.toLowerCase().includes(query)) ||
+          (s.first_name && s.first_name.toLowerCase().includes(query)) ||
+          (s.last_name && s.last_name.toLowerCase().includes(query)) ||
+          getDisplayName(s).toLowerCase().includes(query),
       );
     }
 
@@ -120,8 +130,18 @@
   );
 
   // Get initials for avatar
-  function getInitials(firstName: string, lastName: string): string {
-    return `${firstName[0] || ""}${lastName[0] || ""}`.toUpperCase();
+  function getInitials(student: Student): string {
+    if (student.first_name && student.last_name) {
+      return `${student.first_name[0] || ""}${student.last_name[0] || ""}`.toUpperCase();
+    }
+    if (student.name) {
+      const parts = student.name.split(" ");
+      if (parts.length >= 2) {
+        return `${parts[0][0] || ""}${parts[parts.length - 1][0] || ""}`.toUpperCase();
+      }
+      return (student.name[0] || "").toUpperCase();
+    }
+    return student.id[0]?.toUpperCase() || "?";
   }
 
   // Get color class based on class_id for visual distinction
@@ -161,15 +181,10 @@
       </div>
       <button
         class="btn btn-primary gap-2 shadow-lg"
-        onclick={() => (showAddForm = !showAddForm)}
+        onclick={() => addDialog?.showModal()}
       >
-        {#if showAddForm}
-          <X class="h-5 w-5" />
-          Đóng
-        {:else}
-          <UserPlus class="h-5 w-5" />
-          Thêm học sinh
-        {/if}
+        <UserPlus class="h-5 w-5" />
+        Thêm học sinh
       </button>
     </div>
 
@@ -248,173 +263,9 @@
       </div>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-      <!-- Add Student Form -->
-      <div class="lg:col-span-1">
-        <div
-          class="card bg-base-100 shadow-xl border border-base-300 sticky top-8"
-        >
-          <div class="card-body">
-            <h2 class="card-title text-xl">
-              <svg
-                class="h-5 w-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"
-                />
-              </svg>
-              Thêm học sinh mới
-            </h2>
-            <div class="divider my-2"></div>
-
-            <form
-              class="space-y-4"
-              method="POST"
-              action="?/createStudent"
-              use:enhance={createEnhance(
-                "create",
-                "Student added successfully!",
-              )}
-            >
-              <div class="form-control">
-                <label for="id" class="label">
-                  <span class="label-text font-medium">Mã học sinh</span>
-                </label>
-                <div class="relative">
-                  <span
-                    class="absolute inset-y-0 left-0 flex items-center pl-3 text-base-content/40"
-                  >
-                    <svg
-                      class="h-5 w-5"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
-                      />
-                    </svg>
-                  </span>
-                  <input
-                    type="text"
-                    id="id"
-                    name="id"
-                    class="input input-bordered w-full pl-10"
-                    placeholder="VD: HS12345"
-                    required
-                    disabled={isLoading("create")}
-                  />
-                </div>
-              </div>
-
-              <div class="form-control">
-                <label for="first_name" class="label">
-                  <span class="label-text font-medium">Họ</span>
-                </label>
-                <input
-                  type="text"
-                  id="first_name"
-                  name="first_name"
-                  class="input input-bordered"
-                  autocomplete="given-name"
-                  required
-                  disabled={isLoading("create")}
-                />
-              </div>
-
-              <div class="form-control">
-                <label for="last_name" class="label">
-                  <span class="label-text font-medium">Tên</span>
-                </label>
-                <input
-                  type="text"
-                  id="last_name"
-                  name="last_name"
-                  class="input input-bordered"
-                  autocomplete="family-name"
-                  required
-                  disabled={isLoading("create")}
-                />
-              </div>
-
-              <div class="form-control">
-                <label for="classId" class="label">
-                  <span class="label-text font-medium">Lớp</span>
-                </label>
-                <div class="relative">
-                  <span
-                    class="absolute inset-y-0 left-0 flex items-center pl-3 text-base-content/40 pointer-events-none z-10"
-                  >
-                    <svg
-                      class="h-5 w-5"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-                      />
-                    </svg>
-                  </span>
-                  <select
-                    id="classId"
-                    name="classId"
-                    class="select select-bordered w-full pl-10"
-                    required
-                    disabled={isLoading("create")}
-                  >
-                    <option value="">Chọn lớp</option>
-                    {#each data.classes as cls}
-                      <option value={cls.id}>{cls.name}</option>
-                    {/each}
-                  </select>
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                class="btn btn-primary w-full mt-6"
-                disabled={isLoading("create")}
-              >
-                {#if isLoading("create")}
-                  <span class="loading loading-spinner loading-sm"></span>
-                  Đang thêm...
-                {:else}
-                  <svg
-                    class="h-5 w-5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M12 4v16m8-8H4"
-                    />
-                  </svg>
-                  Thêm học sinh
-                {/if}
-              </button>
-            </form>
-          </div>
-        </div>
-      </div>
-
+    <div class="grid grid-cols-1 gap-8">
       <!-- Student List -->
-      <div class="lg:col-span-2">
+      <div>
         <div class="card bg-base-100 shadow-xl border border-base-300">
           <div class="card-body">
             <div class="flex items-center justify-between mb-4">
@@ -484,11 +335,12 @@
                       <th class="bg-base-200">Mã học sinh</th>
                       <th class="bg-base-200">Họ tên</th>
                       <th class="bg-base-200">Lớp</th>
+                      <th class="bg-base-200">Khuôn mặt</th>
                       <th class="bg-base-200 text-right">Thao tác</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {#each data.students as student (student.id)}
+                    {#each filteredStudents as student (student.id)}
                       <tr class="hover:bg-base-200/50 transition-colors">
                         <td>
                           <span class="badge badge-ghost font-mono text-xs">
@@ -497,19 +349,85 @@
                         </td>
                         <td>
                           <div class="flex items-center gap-3">
-                            <span class="font-medium">
-                              {student.first_name}
-                              {student.last_name}
-                            </span>
+                            <div
+                              class={`avatar placeholder ${getAvatarColor(student.class_id)}`}
+                            >
+                              <div class="w-8 h-8 rounded-full">
+                                <span class="text-xs"
+                                  >{getInitials(student)}</span
+                                >
+                              </div>
+                            </div>
+                            <div>
+                              <span class="font-medium">
+                                {getDisplayName(student)}
+                              </span>
+                              {#if student.name && student.first_name && student.last_name}
+                                <span
+                                  class="text-xs text-base-content/50 block"
+                                >
+                                  {student.name}
+                                </span>
+                              {/if}
+                            </div>
                           </div>
                         </td>
                         <td>
                           <span class="badge badge-outline">
-                            {student.class_name || "N/A"}
+                            {student.class_name || "Chưa phân lớp"}
                           </span>
                         </td>
                         <td>
+                          {#if student.face_registered}
+                            <span class="badge badge-success gap-1">
+                              <svg
+                                class="h-3 w-3"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                              >
+                                <path
+                                  stroke-linecap="round"
+                                  stroke-linejoin="round"
+                                  stroke-width="2"
+                                  d="M5 13l4 4L19 7"
+                                />
+                              </svg>
+                              Đã đăng ký
+                            </span>
+                          {:else}
+                            <span class="badge badge-warning gap-1">
+                              <svg
+                                class="h-3 w-3"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                              >
+                                <path
+                                  stroke-linecap="round"
+                                  stroke-linejoin="round"
+                                  stroke-width="2"
+                                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                                />
+                              </svg>
+                              Chưa đăng ký
+                            </span>
+                          {/if}
+                        </td>
+                        <td>
                           <div class="flex justify-end gap-2">
+                            <a 
+                              href="/student/{student.id}" 
+                              class="btn btn-sm btn-ghost hover:btn-info hover:text-info"
+                              title="Xem chi tiết"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                              </svg>
+                              Profile
+                            </a>
+
                             <button
                               class="btn btn-sm btn-ghost hover:btn-primary"
                               onclick={() => openEditModal(student)}
@@ -564,6 +482,118 @@
     </div>
   </div>
 </div>
+
+<!-- Add Student Modal -->
+<dialog bind:this={addDialog} class="modal">
+  <div class="modal-box max-w-md">
+    <h3 class="font-bold text-xl mb-1 flex items-center gap-2">
+      <div class="rounded-lg bg-primary/10 p-2">
+        <UserPlus class="h-5 w-5 text-primary" />
+      </div>
+      Thêm học sinh mới
+    </h3>
+    <p class="text-sm text-base-content/60 mb-4">Điền thông tin học sinh mới</p>
+
+    <form
+      class="space-y-4"
+      method="POST"
+      action="?/createStudent"
+      use:enhance={createEnhance("create", "Thêm học sinh thành công!", () =>
+        addDialog?.close(),
+      )}
+    >
+      <div class="form-control">
+        <label for="add_id" class="label">
+          <span class="label-text font-medium">Mã học sinh</span>
+        </label>
+        <input
+          type="text"
+          id="add_id"
+          name="id"
+          class="input input-bordered"
+          placeholder="VD: HS12345"
+          required
+          disabled={isLoading("create")}
+        />
+      </div>
+
+      <div class="form-control">
+        <label for="add_first_name" class="label">
+          <span class="label-text font-medium">Họ</span>
+        </label>
+        <input
+          type="text"
+          id="add_first_name"
+          name="first_name"
+          class="input input-bordered"
+          autocomplete="given-name"
+          required
+          disabled={isLoading("create")}
+        />
+      </div>
+
+      <div class="form-control">
+        <label for="add_last_name" class="label">
+          <span class="label-text font-medium">Tên</span>
+        </label>
+        <input
+          type="text"
+          id="add_last_name"
+          name="last_name"
+          class="input input-bordered"
+          autocomplete="family-name"
+          required
+          disabled={isLoading("create")}
+        />
+      </div>
+
+      <div class="form-control">
+        <label for="add_classId" class="label">
+          <span class="label-text font-medium">Lớp</span>
+        </label>
+        <select
+          id="add_classId"
+          name="classId"
+          class="select select-bordered w-full"
+          required
+          disabled={isLoading("create")}
+        >
+          <option value="">Chọn lớp</option>
+          {#each data.classes as cls}
+            <option value={cls.id}>{cls.name}</option>
+          {/each}
+        </select>
+      </div>
+
+      <div class="flex justify-end gap-2 pt-4">
+        <button
+          type="button"
+          class="btn btn-ghost"
+          onclick={() => addDialog?.close()}
+          disabled={isLoading("create")}
+        >
+          Hủy
+        </button>
+        <button
+          type="submit"
+          class="btn btn-primary"
+          disabled={isLoading("create")}
+        >
+          {#if isLoading("create")}
+            <span class="loading loading-spinner loading-sm"></span>
+            Đang thêm...
+          {:else}
+            <UserPlus class="h-4 w-4" />
+            Thêm học sinh
+          {/if}
+        </button>
+      </div>
+    </form>
+  </div>
+  <form method="dialog" class="modal-backdrop">
+    <button>close</button>
+  </form>
+</dialog>
 
 <!-- Edit Student Modal -->
 <dialog bind:this={editDialog} class="modal">

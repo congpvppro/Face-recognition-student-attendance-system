@@ -1,8 +1,8 @@
-import { api } from "$lib/server/http";
+import { tsApi } from "$lib/server/http";
 import type { PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async (event) => {
-  const client = api(event);
+  const client = tsApi(event);
   const { url } = event;
 
   // Get classId and date from URL search params, providing defaults

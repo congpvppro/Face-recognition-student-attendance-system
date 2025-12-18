@@ -1,9 +1,9 @@
 import { fail } from "@sveltejs/kit";
-import { api } from "$lib/server/http";
+import { tsApi } from "$lib/server/http";
 import type { Actions, PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async (event) => {
-  const client = api(event);
+  const client = tsApi(event);
   const { user } = event.locals;
 
   try {
@@ -44,7 +44,7 @@ export const load: PageServerLoad = async (event) => {
 export const actions: Actions = {
   assignStudent: async (event) => {
     const fd = await event.request.formData();
-    const client = api(event);
+    const client = tsApi(event);
     const faceId = String(fd.get("faceId"));
     const studentId = String(fd.get("studentId"));
 
@@ -80,7 +80,7 @@ export const actions: Actions = {
   },
   createAndAssignStudent: async (event) => {
     const fd = await event.request.formData();
-    const client = api(event);
+    const client = tsApi(event);
     const faceId = String(fd.get("faceId"));
     const classId = Number(fd.get("classId"));
     const studentId = String(fd.get("studentId"));
@@ -131,7 +131,7 @@ export const actions: Actions = {
   },
   ignoreFace: async (event) => {
     const fd = await event.request.formData();
-    const client = api(event);
+    const client = tsApi(event);
     const faceId = String(fd.get("faceId"));
 
     if (!faceId) {

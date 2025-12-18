@@ -3,18 +3,7 @@ import { faceRecognitionGateway } from "../gateway";
 
 export class UnregisteredFaceService {
   constructor() {
-    this.initDatabase();
-  }
-
-  private initDatabase() {
-    db.run(`
-            CREATE TABLE IF NOT EXISTS unregistered_faces (
-                face_id TEXT PRIMARY KEY,
-                class_id INTEGER NOT NULL,
-                created_at TEXT NOT NULL,
-                FOREIGN KEY (class_id) REFERENCES classes (id)
-            );
-        `);
+    // Database tables are now initialized in sqlite.ts
   }
 
   public addUnregisteredFace(faceId: string, classId: number): void {

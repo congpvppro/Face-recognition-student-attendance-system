@@ -1,12 +1,15 @@
 import { AttendanceService } from "@attendance/attendance.service";
-import { NotFoundError } from "@common/errors/httpErrors";
+import { NotFoundError, UnauthorizedError } from "@common/errors/httpErrors";
 import { Elysia, t } from "elysia";
 import { faceRecognitionGateway } from "../gateway";
-import { CreateStudentSchema, StudentSchema } from "./student.model";
+import {
+  CreateStudentSchema,
+  StudentSchema,
+  UpdateStudentSchema,
+} from "./student.model";
 import { StudentService } from "./student.service";
 import { UnregisteredFaceService } from "./unregistered.service";
 import { jwt } from "@elysiajs/jwt";
-import { UnauthorizedError } from "@common/errors/httpErrors";
 
 export const studentsPlugin = new Elysia({ prefix: "/students" })
   .use(jwt({ name: "jwt", secret: process.env.JWT_SECRET as string }))
@@ -24,20 +27,25 @@ export const studentsPlugin = new Elysia({ prefix: "/students" })
       response: t.Array(StudentSchema),
     },
   )
-  .get("/unregistered", async ({ unregisteredFaceService, jwt, cookie }) => {
-    const token = cookie?.auth?.value;
-    if (!token) throw new UnauthorizedError("Missing token");
+  .get("/unregistered", async () => {
+    // Authentication is handled at the SvelteKit level (hooks.server.ts)
+    // Only admin and teacher roles can access the routes that call this endpoint
 
-    const user = (await jwt.verify(token)) as {
-      id: number;
-      role: string;
-    } | null;
-    if (!user) throw new UnauthorizedError("Invalid token");
+    // Fetch from Python API which manages the unregistered faces database
+    const pythonApiUrl = process.env.PYTHON_API_URL || "http://localhost:8000";
+    const response = await fetch(`${pythonApiUrl}/unregistered_faces`);
 
-    if (user.role === "teacher") {
-      return unregisteredFaceService.getUnregisteredFaces(user.id);
+    if (!response.ok) {
+      return [];
     }
-    return unregisteredFaceService.getUnregisteredFaces();
+
+    const data = (await response.json()) as {
+      faces: { face_id: string; class_id: number }[];
+    };
+    return data.faces.map((f) => ({
+      face_id: f.face_id,
+      class_id: f.class_id,
+    }));
   })
   .get("/unregistered/image/:faceId", async ({ params: { faceId }, set }) => {
     const pythonApiUrl = process.env.PYTHON_API_URL || "http://localhost:8000";
@@ -52,8 +60,9 @@ export const studentsPlugin = new Elysia({ prefix: "/students" })
   })
   .delete(
     "/unregistered/:faceId",
-    ({ params: { faceId }, unregisteredFaceService }) => {
-      unregisteredFaceService.deleteUnregisteredFace(faceId);
+    async ({ params: { faceId } }) => {
+      // Python API handles both file and database cleanup
+      await faceRecognitionGateway.deleteUnregisteredFace(faceId);
       return { message: "Unregistered face deleted successfully." };
     },
     {
@@ -87,16 +96,13 @@ export const studentsPlugin = new Elysia({ prefix: "/students" })
   )
   .post(
     "/register-face",
-    async ({ body, unregisteredFaceService }) => {
+    async ({ body }) => {
       const classId = Number(body.classId);
       const image = body.image as File;
 
+      // Python API handles both face detection and database storage
       const recognitionResult = await faceRecognitionGateway.registerFace(
         image,
-        classId,
-      );
-      unregisteredFaceService.addUnregisteredFace(
-        recognitionResult.face_id,
         classId,
       );
 
@@ -144,7 +150,26 @@ export const studentsPlugin = new Elysia({ prefix: "/students" })
     },
     {
       params: t.Object({ id: t.String() }),
-      body: t.Partial(CreateStudentSchema),
+      body: UpdateStudentSchema,
       response: StudentSchema,
+    },
+  )
+  .get(
+    "/:id",
+    ({ params: { id }, studentService }) => {
+      return studentService.getStudentById(id);
+    },
+    {
+      params: t.Object({ id: t.String() }),
+      response: StudentSchema,
+    },
+  )
+  .get(
+    "/:id/attendance",
+    ({ params: { id }, attendanceService }) => {
+      return attendanceService.getAttendanceByStudent(id);
+    },
+    {
+      params: t.Object({ id: t.String() }),
     },
   );

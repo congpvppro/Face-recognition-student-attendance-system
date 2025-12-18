@@ -486,13 +486,15 @@
                                 class="w-4 h-4 rounded-full bg-secondary text-secondary-content flex items-center justify-center"
                               >
                                 <span class="text-[8px]"
-                                  >{link.first_name[0]}</span
+                                  >{link.first_name?.[0] ||
+                                    link.student_id?.[0] ||
+                                    "?"}</span
                                 >
                               </div>
                             </div>
                             <span class="font-medium text-xs">
-                              {link.first_name}
-                              {link.last_name}
+                              {link.first_name || ""}
+                              {link.last_name || ""}
                             </span>
                           </div>
                         {/each}

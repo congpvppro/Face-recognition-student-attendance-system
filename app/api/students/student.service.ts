@@ -17,20 +17,8 @@ export class StudentService {
   private unregisteredFaceService: UnregisteredFaceService;
 
   constructor() {
-    this.initDatabase();
+    // Database tables are now initialized in sqlite.ts
     this.unregisteredFaceService = new UnregisteredFaceService();
-  }
-
-  private initDatabase() {
-    db.run(`
-            CREATE TABLE IF NOT EXISTS students (
-                id TEXT PRIMARY KEY,
-                first_name TEXT NOT NULL,
-                last_name TEXT NOT NULL,
-                class_id INTEGER NOT NULL,
-                FOREIGN KEY (class_id) REFERENCES classes (id)
-            );
-        `);
   }
 
   public createStudent(studentData: CreateStudent): Student {
@@ -43,20 +31,25 @@ export class StudentService {
       );
     }
 
+    // Generate full name from first_name and last_name
+    const fullName = `${studentData.first_name} ${studentData.last_name}`;
+
     const query = db.query<
       Student,
       {
         $id: string;
+        $name: string;
         $first_name: string;
         $last_name: string;
         $class_id: number;
       }
     >(
-      "INSERT INTO students (id, first_name, last_name, class_id) VALUES ($id, $first_name, $last_name, $class_id) RETURNING *",
+      "INSERT INTO students (id, name, first_name, last_name, class_id) VALUES ($id, $name, $first_name, $last_name, $class_id) RETURNING id, name, first_name, last_name, class_id",
     );
 
     const newStudent = query.get({
       $id: studentData.id,
+      $name: fullName,
       $first_name: studentData.first_name,
       $last_name: studentData.last_name,
       $class_id: studentData.class_id,
@@ -71,7 +64,7 @@ export class StudentService {
 
   public getStudentById(id: string): Student {
     const query = db.query<Student, { $id: string }>(
-      "SELECT * FROM students WHERE id = $id",
+      "SELECT id, name, first_name, last_name, class_id, face_registered FROM students WHERE id = $id",
     );
     const student = query.get({ $id: id });
     if (!student) {
@@ -84,15 +77,18 @@ export class StudentService {
     const query = db.query(`
             SELECT
                 s.id,
+                s.name,
                 s.first_name,
                 s.last_name,
                 s.class_id,
+                s.face_registered,
                 c.name as class_name
             FROM students s
             LEFT JOIN classes c ON s.class_id = c.id
         `);
     return query.all();
   }
+
   public updateStudent(
     id: string,
     studentData: Partial<CreateStudent>,
@@ -104,20 +100,25 @@ export class StudentService {
       ...studentData,
     };
 
+    // Update full name if first_name or last_name changed
+    const fullName = `${updatedStudent.first_name} ${updatedStudent.last_name}`;
+
     const query = db.query<
       Student,
       {
         $id: string;
+        $name: string;
         $first_name: string;
         $last_name: string;
         $class_id: number;
       }
     >(
-      "UPDATE students SET first_name = $first_name, last_name = $last_name, class_id = $class_id WHERE id = $id RETURNING *",
+      "UPDATE students SET name = $name, first_name = $first_name, last_name = $last_name, class_id = $class_id WHERE id = $id RETURNING id, name, first_name, last_name, class_id",
     );
 
     const result = query.get({
       $id: id,
+      $name: fullName,
       $first_name: updatedStudent.first_name,
       $last_name: updatedStudent.last_name,
       $class_id: updatedStudent.class_id,

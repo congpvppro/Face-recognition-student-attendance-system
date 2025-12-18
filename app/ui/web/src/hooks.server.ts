@@ -9,10 +9,18 @@ export const handle: Handle = async ({ event, resolve }) => {
   // 1. AUTHENTICATION: Check for token and load user
   const token = event.cookies.get("auth");
 
+  // Store token in locals for use in server-side API calls
+  event.locals.token = token ?? null;
+
   if (token) {
     const client = api(event);
     try {
-      const responseData: unknown = await client.get("api/users/me").json();
+      // Pass the token as Bearer authorization to Python API
+      const responseData: unknown = await client
+        .get("api/users/me", {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        .json();
 
       if (
         responseData &&

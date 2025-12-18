@@ -200,10 +200,10 @@ export class UserService {
 
   async getStudentsForParent(parentId: number) {
     const query = db.query(
-      `SELECT s.*
-	     FROM students s
-	     JOIN parent_student ps ON s.id = ps.student_id
-	     WHERE ps.parent_id = $parentId`,
+      `SELECT s.id, s.name, s.first_name, s.last_name, s.class_id
+       FROM students s
+       JOIN parent_student ps ON s.id = ps.student_id
+       WHERE ps.parent_id = $parentId`,
     );
     const students = query.all({ $parentId: parentId });
     return { students };
@@ -211,9 +211,9 @@ export class UserService {
 
   async getAllParentStudentLinks() {
     const query = db.query(
-      `SELECT ps.parent_id, ps.student_id, s.first_name, s.last_name, s.class_id
-             FROM parent_student ps
-             JOIN students s ON ps.student_id = s.id`,
+      `SELECT ps.parent_id, ps.student_id, s.name as student_name, s.first_name, s.last_name, s.class_id
+       FROM parent_student ps
+       JOIN students s ON ps.student_id = s.id`,
     );
     const links = query.all();
     return { links };

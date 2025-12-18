@@ -347,37 +347,67 @@ class AnalysisAgent:
             return cursor.fetchall()
 
     @staticmethod
-    def export_student_report(student_id=None, date=None, format='both'):
-        """export student report - generates both CSV and Excel files"""
+    def export_student_report(student_id=None, date=None, format='both', class_id=None):
+        """export student report - generates both CSV and Excel files
+        
+        Args:
+            student_id: Optional specific student ID to filter
+            date: Optional date to filter (YYYY-MM-DD format)
+            format: 'csv', 'excel', or 'both'
+            class_id: Optional class ID to filter students by class
+        """
         try:
             from openpyxl import Workbook
             import csv
-
-            if date is None:
-                base_filename = "student_attendance_TOTAL_SUMMARY"
-            else:
-                base_filename = f"student_attendance_{date}"
-
-            excel_filename = f"{base_filename}.xlsx"
-            csv_filename = f"{base_filename}.csv"
+            import io
 
             data = []
-            headers = ['Student ID', 'Student Name', 'Total Sessions',
-                       'Attended', 'Absent', 'Late', 'Attendance %', 'Avg Score']
+            headers = ['Mã HS', 'Họ tên', 'Tổng tiết', 'Có mặt', 'Vắng', 'Muộn', 'Tỷ lệ %', 'Điểm TB']
 
             if date is not None:
-                headers.append('Report Date')
+                headers.append('Ngày')
 
             with get_connection() as conn:
                 cursor = conn.cursor()
+                
+                # Get class name if class_id is provided
+                class_name = None
+                if class_id is not None:
+                    cursor.execute("SELECT name FROM classes WHERE id = ?", (class_id,))
+                    class_row = cursor.fetchone()
+                    class_name = class_row[0] if class_row else f"Class_{class_id}"
 
-                cursor.execute("SELECT id, name FROM students ORDER BY name")
+                # Build query based on filters
+                if class_id is not None:
+                    cursor.execute("""
+                        SELECT id, name, first_name, last_name
+                        FROM students
+                        WHERE class_id = ?
+                        ORDER BY name
+                    """, (class_id,))
+                elif student_id is not None:
+                    cursor.execute("""
+                        SELECT id, name, first_name, last_name
+                        FROM students
+                        WHERE id = ?
+                    """, (student_id,))
+                else:
+                    cursor.execute("SELECT id, name, first_name, last_name FROM students ORDER BY name")
+                
                 students = cursor.fetchall()
 
-                for sid, name in students:
+                for student in students:
+                    sid = student[0]
+                    # Build display name
+                    first_name = student[2] or ''
+                    last_name = student[3] or ''
+                    student_name = f"{first_name} {last_name}".strip()
+                    if not student_name:
+                        student_name = student[1] or sid
+                    
                     if date is None:
                         cursor.execute("""
-                            SELECT 
+                            SELECT
                                 COUNT(*) as total,
                                 SUM(CASE WHEN attendance_status IN ('on_time', 'late') THEN 1 ELSE 0 END) as attended,
                                 SUM(CASE WHEN attendance_status = 'absent' THEN 1 ELSE 0 END) as absent,
@@ -388,7 +418,7 @@ class AnalysisAgent:
                         """, (sid,))
                     else:
                         cursor.execute("""
-                            SELECT 
+                            SELECT
                                 COUNT(*) as total,
                                 SUM(CASE WHEN attendance_status IN ('on_time', 'late') THEN 1 ELSE 0 END) as attended,
                                 SUM(CASE WHEN attendance_status = 'absent' THEN 1 ELSE 0 END) as absent,
@@ -405,46 +435,166 @@ class AnalysisAgent:
                         attendance_pct = round((attended / total) * 100, 1) if total > 0 else 0
 
                         if date is None:
-                            row = [sid, name, total, attended, absent, late,
+                            row = [sid, student_name, total, attended, absent, late,
                                    f"{attendance_pct}%", round(avg_score or 0, 2)]
                         else:
-                            row = [sid, name, total, attended, absent, late,
+                            row = [sid, student_name, total, attended, absent, late,
                                    f"{attendance_pct}%", round(avg_score or 0, 2), date]
                     else:
                         if date is None:
-                            row = [sid, name, 0, 0, 0, 0, "0%", 0]
+                            row = [sid, student_name, 0, 0, 0, 0, "0%", 0]
                         else:
-                            row = [sid, name, 0, 0, 0, 0, "0%", 0, date]
+                            row = [sid, student_name, 0, 0, 0, 0, "0%", 0, date]
 
                     data.append(row)
 
-            if format in ['excel', 'both']:
+            # Generate filename
+            if class_name:
+                base_filename = f"student_report_{class_name}"
+            else:
+                base_filename = "student_report_all"
+            
+            if date:
+                base_filename += f"_{date}"
+            else:
+                base_filename += "_total"
+
+            # For API usage - return in-memory content
+            if format == 'csv':
+                output = io.StringIO()
+                writer = csv.writer(output)
+                writer.writerow(headers)
+                writer.writerows(data)
+                return {
+                    'content': output.getvalue(),
+                    'filename': f"{base_filename}.csv",
+                    'class_name': class_name
+                }
+            elif format == 'excel':
                 wb = Workbook()
                 ws = wb.active
-
-                if date is None:
-                    ws.title = "Total Summary Report"
-                else:
-                    ws.title = f"Attendance Report {date}"
-
+                ws.title = "Báo cáo điểm danh"
                 ws.append(headers)
                 for row in data:
                     ws.append(row)
-
+                
+                output = io.BytesIO()
+                wb.save(output)
+                output.seek(0)
+                return {
+                    'content': output.getvalue(),
+                    'filename': f"{base_filename}.xlsx",
+                    'class_name': class_name
+                }
+            else:  # 'both' - save to files (legacy behavior)
+                excel_filename = f"{base_filename}.xlsx"
+                csv_filename = f"{base_filename}.csv"
+                
+                wb = Workbook()
+                ws = wb.active
+                ws.title = "Báo cáo điểm danh"
+                ws.append(headers)
+                for row in data:
+                    ws.append(row)
                 wb.save(excel_filename)
 
-            if format in ['csv', 'both']:
-                with open(csv_filename, 'w', newline='') as csvfile:
+                with open(csv_filename, 'w', newline='', encoding='utf-8-sig') as csvfile:
                     writer = csv.writer(csvfile)
                     writer.writerow(headers)
                     writer.writerows(data)
 
-            if format == 'excel':
-                return excel_filename
-            elif format == 'csv':
-                return csv_filename
-            else:  # 'both'
                 return {'excel': excel_filename, 'csv': csv_filename}
 
         except ImportError:
+            return None
+        except Exception as e:
+            print(f"Error exporting student report: {e}")
+            return None
+
+    @staticmethod
+    def export_class_attendance(class_id, date, format='csv'):
+        """Export attendance for a specific class and date with session details"""
+        try:
+            import csv
+            import io
+            
+            with get_connection() as conn:
+                cursor = conn.cursor()
+                
+                # Get class info
+                cursor.execute("SELECT name FROM classes WHERE id = ?", (class_id,))
+                class_row = cursor.fetchone()
+                class_name = class_row[0] if class_row else f"Class_{class_id}"
+                
+                # Get students in this class
+                cursor.execute("""
+                    SELECT id, name, first_name, last_name
+                    FROM students
+                    WHERE class_id = ?
+                    ORDER BY name
+                """, (class_id,))
+                students = cursor.fetchall()
+                
+                # Prepare data
+                headers = ['Mã HS', 'Họ tên', 'Tiết 1', 'Tiết 2', 'Tiết 3', 'Tiết 4', 'Tiết 5']
+                data = []
+                
+                for student in students:
+                    student_id = student[0]
+                    first_name = student[2] or ''
+                    last_name = student[3] or ''
+                    student_name = f"{first_name} {last_name}".strip()
+                    if not student_name:
+                        student_name = student[1] or student_id
+                    
+                    # Get attendance for all 5 sessions
+                    cursor.execute("""
+                        SELECT session_number, attendance_status
+                        FROM attendance_sessions
+                        WHERE student_id = ? AND session_date = ?
+                        ORDER BY session_number
+                    """, (student_id, date))
+                    sessions = {row[0]: row[1] for row in cursor.fetchall()}
+                    
+                    row = [
+                        student_id,
+                        student_name,
+                        sessions.get(1, 'absent'),
+                        sessions.get(2, 'absent'),
+                        sessions.get(3, 'absent'),
+                        sessions.get(4, 'absent'),
+                        sessions.get(5, 'absent'),
+                    ]
+                    data.append(row)
+                
+                if format == 'csv':
+                    output = io.StringIO()
+                    writer = csv.writer(output)
+                    writer.writerow(headers)
+                    writer.writerows(data)
+                    return {
+                        'content': output.getvalue(),
+                        'filename': f"attendance_{class_name}_{date}.csv",
+                        'class_name': class_name
+                    }
+                elif format == 'excel':
+                    from openpyxl import Workbook
+                    wb = Workbook()
+                    ws = wb.active
+                    ws.title = f"Attendance {date}"
+                    ws.append(headers)
+                    for row in data:
+                        ws.append(row)
+                    
+                    output = io.BytesIO()
+                    wb.save(output)
+                    output.seek(0)
+                    return {
+                        'content': output.getvalue(),
+                        'filename': f"attendance_{class_name}_{date}.xlsx",
+                        'class_name': class_name
+                    }
+                    
+        except Exception as e:
+            print(f"Error exporting class attendance: {e}")
             return None

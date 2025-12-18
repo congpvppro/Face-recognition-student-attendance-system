@@ -1,21 +1,26 @@
-import { api } from "$lib/server/http";
+import { api, tsApi } from "$lib/server/http";
 import type { PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async (event) => {
-  const client = api(event);
+  const userClient = api(event);
+  const tsClient = tsApi(event);
+  const token = event.locals.token;
+  const userId = event.locals.user?.id;
 
   try {
-    // 1. Get linked students
-    const response = await client
-      .get("api/users/me/students")
+    // 1. Get linked students from Python API
+    const response = await userClient
+      .get(`api/users/${userId}/students`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      })
       .json<{ students: any[] }>();
     const students = response.students || [];
 
-    // 2. For each student, get attendance
+    // 2. For each student, get attendance from TS API
     const studentsWithAttendance = await Promise.all(
       students.map(async (student) => {
         try {
-          const attendance = await client
+          const attendance = await tsClient
             .get(`api/attendance?studentId=${student.id}`)
             .json<any[]>();
           return { ...student, attendance };

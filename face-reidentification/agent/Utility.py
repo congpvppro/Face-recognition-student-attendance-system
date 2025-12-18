@@ -119,8 +119,12 @@ def parse_ai_response(ai_response, expected_values):
         return None
 
 
-def get_connection(db_path="../face-reidentification/database/attendance.db", row_factory=None):
+def get_connection(db_path=None, row_factory=None):
     """Connect to db"""
+    if db_path is None:
+        # Get absolute path relative to this file's location
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        db_path = os.path.join(current_dir, "..", "database", "attendance.db")
     conn = sqlite3.connect(db_path)
     if row_factory:
         conn.row_factory = row_factory

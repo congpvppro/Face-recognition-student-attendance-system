@@ -9,8 +9,10 @@ type CreateClass = Static<typeof CreateClassSchema>;
 // Type for student info in class listing
 interface StudentInfo {
   id: string;
+  name: string;
   first_name: string;
   last_name: string;
+  face_registered: number | null;
 }
 
 // Type for class with students and teacher info
@@ -30,33 +32,25 @@ interface ClassQueryResult {
 
 export class ClassService {
   constructor() {
-    this.initDatabase();
-  }
-
-  private initDatabase(): void {
-    db.run(`
-      CREATE TABLE IF NOT EXISTS classes (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        teacher_id INTEGER,
-        FOREIGN KEY (teacher_id) REFERENCES users(id)
-      );
-    `);
-    db.run(`
-      CREATE TABLE IF NOT EXISTS student_classes (
-        student_id TEXT NOT NULL,
-        class_id INTEGER NOT NULL,
-        PRIMARY KEY (student_id, class_id),
-        FOREIGN KEY (student_id) REFERENCES students (id),
-        FOREIGN KEY (class_id) REFERENCES classes (id)
-      );
-    `);
+    // Database tables are now initialized in sqlite.ts
   }
 
   /**
    * Create a new class
    */
   public createClass(classData: CreateClass): Class {
+    // Verify teacher exists
+    const teacherQuery = db.query<{ id: number }, { $id: number }>(
+      "SELECT id FROM users WHERE id = $id AND role = 'teacher'",
+    );
+    const teacher = teacherQuery.get({ $id: classData.teacher_id });
+
+    if (!teacher) {
+      throw new NotFoundError(
+        `Teacher with ID ${classData.teacher_id} not found.`,
+      );
+    }
+
     const query = db.query<Class, { $name: string; $teacher_id: number }>(
       "INSERT INTO classes (name, teacher_id) VALUES ($name, $teacher_id) RETURNING *",
     );
@@ -102,7 +96,7 @@ export class ClassService {
         u.first_name || ' ' || u.last_name as teacher,
         (
           SELECT json_group_array(
-            json_object('id', s.id, 'first_name', s.first_name, 'last_name', s.last_name)
+            json_object('id', s.id, 'name', s.name, 'first_name', s.first_name, 'last_name', s.last_name, 'face_registered', s.face_registered)
           )
           FROM students s
           WHERE s.class_id = c.id

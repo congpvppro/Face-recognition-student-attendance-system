@@ -1,15 +1,16 @@
-import { api } from "$lib/server/http";
+import { tsApi } from "$lib/server/http";
 import type { PageServerLoad, Actions } from "./$types";
 import { fail } from "@sveltejs/kit";
 
 export const load: PageServerLoad = async (event) => {
   const { classId } = event.params;
-  const client = api(event);
+  const client = tsApi(event);
+
+  // Get date from URL search params, default to today
+  const dateParam = event.url.searchParams.get("date");
+  const selectedDate = dateParam || new Date().toISOString().split("T")[0];
 
   // Fetch class details (which includes students)
-  // Since GET /classes returns all, we might need to filter or find a specific endpoint.
-  // There isn't a GET /classes/:id endpoint in the current plugin.
-  // I should probably add one or just fetch all and find. Fetching all is inefficient but works for now.
   const classes = await client.get("api/classes").json<any[]>();
   const classDetail = classes.find((c) => c.id === Number(classId));
 
@@ -17,12 +18,11 @@ export const load: PageServerLoad = async (event) => {
     throw fail(404, { message: "Class not found" });
   }
 
-  // Fetch attendance analytics
-  const today = new Date().toISOString().split("T")[0];
+  // Fetch attendance for the selected date
   let attendance = [];
   try {
     attendance = await client
-      .get(`api/attendance?classId=${classId}&date=${today}`)
+      .get(`api/attendance?classId=${classId}&date=${selectedDate}`)
       .json<any[]>();
   } catch (e) {
     console.error("Failed to fetch attendance:", e);
@@ -31,12 +31,13 @@ export const load: PageServerLoad = async (event) => {
   return {
     classDetail,
     attendance,
+    selectedDate,
   };
 };
 
 export const actions: Actions = {
   addStudent: async (event) => {
-    const client = api(event);
+    const client = tsApi(event);
     const formData = await event.request.formData();
     const studentId = formData.get("studentId") as string;
     const classId = Number(event.params.classId);
@@ -59,7 +60,7 @@ export const actions: Actions = {
     }
   },
   updateAttendance: async (event) => {
-    const client = api(event);
+    const client = tsApi(event);
     const formData = await event.request.formData();
     const studentId = formData.get("studentId") as string;
     const status = formData.get("status") as string;

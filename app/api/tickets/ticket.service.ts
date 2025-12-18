@@ -8,28 +8,7 @@ type CreateTicket = Static<typeof CreateTicketSchema>;
 
 export class TicketService {
   constructor() {
-    this.initDatabase();
-  }
-
-  private initDatabase() {
-    db.run(`
-            CREATE TABLE IF NOT EXISTS tickets (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                parent_id INTEGER NOT NULL,
-                student_id TEXT NOT NULL,
-                teacher_id INTEGER,
-                class_id INTEGER NOT NULL,
-                status TEXT NOT NULL DEFAULT 'pending',
-                type TEXT NOT NULL,
-                reason TEXT NOT NULL,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (parent_id) REFERENCES users(id),
-                FOREIGN KEY (student_id) REFERENCES students(id),
-                FOREIGN KEY (teacher_id) REFERENCES users(id),
-                FOREIGN KEY (class_id) REFERENCES classes(id)
-            );
-        `);
+    // Database tables are now initialized in sqlite.ts
   }
 
   async createTicket(data: CreateTicket, parentId: number): Promise<Ticket> {
@@ -79,8 +58,9 @@ export class TicketService {
 
   async getTicketsForParent(parentId: number): Promise<any[]> {
     const query = db.query(`
-            SELECT 
+            SELECT
                 t.*,
+                s.name as student_name,
                 s.first_name as student_first_name,
                 s.last_name as student_last_name,
                 c.name as class_name,
@@ -98,8 +78,9 @@ export class TicketService {
 
   async getTicketsForTeacher(teacherId: number): Promise<any[]> {
     const query = db.query(`
-             SELECT 
+             SELECT
                 t.*,
+                s.name as student_name,
                 s.first_name as student_first_name,
                 s.last_name as student_last_name,
                 p.first_name as parent_first_name,

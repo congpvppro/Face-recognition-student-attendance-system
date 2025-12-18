@@ -12,7 +12,7 @@ export interface AttendanceFilters {
 
 /**
  * Service for managing attendance records
- * Relies on the Python agent's database for attendance data
+ * Uses unified database for all operations
  */
 export class AttendanceService {
   private extAttendanceService: ExtAttendanceService;
@@ -22,7 +22,7 @@ export class AttendanceService {
   }
 
   /**
-   * Verify that a student exists in the main database
+   * Verify that a student exists in the database
    */
   private verifyStudentExists(studentId: string): void {
     const studentQuery = db.query<{ id: string }, { $id: string }>(
@@ -36,7 +36,7 @@ export class AttendanceService {
   }
 
   /**
-   * Verify that a class exists in the main database
+   * Verify that a class exists in the database
    */
   private verifyClassExists(classId: number): void {
     const classQuery = db.query<{ id: number }, { $id: number }>(
@@ -51,22 +51,16 @@ export class AttendanceService {
 
   /**
    * Get attendance records based on filters
-   * Requires both classId and date for the Python DB query
    */
   public getAttendance(filters: AttendanceFilters): AttendanceRecord[] {
     if (filters.classId && filters.date) {
-      try {
-        return this.extAttendanceService.getAttendanceByClassAndDate(
-          filters.classId,
-          filters.date,
-        );
-      } catch (error) {
-        console.error("Failed to fetch from external DB:", error);
-        return [];
-      }
+      this.verifyClassExists(filters.classId);
+      return this.extAttendanceService.getAttendanceByClassAndDate(
+        filters.classId,
+        filters.date,
+      );
     }
 
-    // Python DB is optimized for class+date queries
     // Return empty array if filters are insufficient
     return [];
   }
@@ -75,6 +69,7 @@ export class AttendanceService {
    * Get all attendance records for a specific student
    */
   public getAttendanceByStudent(studentId: string): AttendanceRecord[] {
+    this.verifyStudentExists(studentId);
     return this.extAttendanceService.getAttendanceByStudent(studentId);
   }
 
@@ -87,11 +82,23 @@ export class AttendanceService {
     session: number,
     status: string,
   ): { message: string } {
+    this.verifyStudentExists(studentId);
     return this.extAttendanceService.updateAttendanceStatus(
       studentId,
       date,
       session,
       status,
     );
+  }
+
+  /**
+   * Export student attendance report for a class
+   */
+  public exportStudentReport(
+    classId: number,
+    date?: string,
+  ): { content: string; filename: string } {
+    this.verifyClassExists(classId);
+    return this.extAttendanceService.exportStudentReport(classId, date);
   }
 }

@@ -15,16 +15,18 @@
 
   type Student = {
     id: string;
-    first_name: string;
-    last_name: string;
+    name: string;
+    first_name: string | null;
+    last_name: string | null;
     class_id: number;
     class_name: string;
   };
 
   type Ticket = {
     id: number;
-    student_first_name: string;
-    student_last_name: string;
+    student_name: string;
+    student_first_name: string | null;
+    student_last_name: string | null;
     class_name: string;
     type: string;
     status: "pending" | "approved" | "rejected";
@@ -41,6 +43,23 @@
   let selectedStudent = $derived(
     data.students.find((s) => s.id === selectedStudentId),
   );
+
+  // Helper to get display name
+  function getStudentDisplayName(student: Student | null): string {
+    if (!student) return "";
+    if (student.first_name && student.last_name) {
+      return `${student.first_name} ${student.last_name}`;
+    }
+    return student.name || student.id;
+  }
+
+  // Helper to get ticket student name
+  function getTicketStudentName(ticket: Ticket): string {
+    if (ticket.student_first_name && ticket.student_last_name) {
+      return `${ticket.student_first_name} ${ticket.student_last_name}`;
+    }
+    return ticket.student_name || "N/A";
+  }
 
   const statusMap = {
     pending: { text: "Chờ duyệt", color: "badge-warning", icon: AlertTriangle },
@@ -116,10 +135,9 @@
               >
                 <option disabled selected value={null}>-- Chọn con --</option>
                 {#each data.students as student}
-                  <option value={student.id}
-                    >{student.first_name}
-                    {student.last_name} - Lớp {student.class_name}</option
-                  >
+                  <option value={student.id}>
+                    {getStudentDisplayName(student)} - Lớp {student.class_name}
+                  </option>
                 {/each}
               </select>
               {#if selectedStudent}
@@ -219,8 +237,7 @@
                   <div class="flex items-center gap-2" title="Học sinh">
                     <User class="h-4 w-4 text-primary" />
                     <span class="font-medium"
-                      >{ticket.student_first_name}
-                      {ticket.student_last_name}</span
+                      >{getTicketStudentName(ticket)}</span
                     >
                   </div>
                   <div class="flex items-center gap-2" title="Lớp">

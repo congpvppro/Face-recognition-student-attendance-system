@@ -6,18 +6,14 @@
 export const PYTHON_API_URL =
   process.env.PYTHON_API_URL || "http://localhost:8000";
 
-// Database paths - tried in order until one is found
+// Database paths - unified database (Python attendance.db)
+// All tables are now in a single database
 export const ATTENDANCE_DB_PATHS = [
-  "face-reidentification/agent/attendance.db",
-  "../../face-reidentification/agent/attendance.db",
-  "../../../face-reidentification/agent/attendance.db",
+  "../face-reidentification/database/attendance.db",
+  "face-reidentification/database/attendance.db",
+  "../../face-reidentification/database/attendance.db",
+  "../database/attendance.db",
   "database/attendance.db",
-];
-
-export const USERS_DB_PATHS = [
-  "users.sqlite",
-  "app/api/users.sqlite",
-  "../../app/api/users.sqlite",
 ];
 
 // JWT Configuration
